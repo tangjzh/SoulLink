@@ -44,6 +44,24 @@ export interface Conversation {
   created_at: string;
 }
 
+export interface ConversationWithStats {
+  id: string;
+  title?: string;
+  scenario: Scenario;
+  created_at: string;
+  message_count: number;
+  last_message?: string;
+  duration: string;
+}
+
+export interface PaginatedConversationsResponse {
+  conversations: ConversationWithStats[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
 export interface Message {
   id: string;
   sender_type: 'user' | 'agent';
@@ -131,6 +149,39 @@ export const getConversations = async (): Promise<Conversation[]> => {
   return response.data;
 };
 
+export const getConversationsPaginated = async (params: {
+  page?: number;
+  size?: number;
+  search?: string;
+  category?: string;
+  sort_by?: string;
+}): Promise<PaginatedConversationsResponse> => {
+  const { page = 1, size = 10, search, category, sort_by = 'date_desc' } = params;
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+    sort_by,
+  });
+  
+  if (search) {
+    queryParams.append('search', search);
+  }
+  if (category && category !== 'all') {
+    queryParams.append('category', category);
+  }
+  
+  const response = await api.get(`/conversations/paginated?${queryParams.toString()}`);
+  return response.data;
+};
+
+export const createMarketConversation = async (data: {
+  target_persona_id: string;
+  title?: string;
+}): Promise<Conversation> => {
+  const response = await api.post('/market-conversations', data);
+  return response.data;
+};
+
 export const getConversationMessages = async (conversationId: string): Promise<Message[]> => {
   const response = await api.get(`/conversations/${conversationId}/messages`);
   return response.data;
@@ -164,10 +215,12 @@ export interface MatchRelation {
   id: string;
   target_agent: {
     id: string;
+    digital_persona_id: string;
     display_name: string;
     display_description: string;
     tags: string[];
   };
+  target_user_id?: string;
   match_type: string;
   love_compatibility_score: number;
   friendship_compatibility_score: number;
@@ -329,6 +382,27 @@ export const setAuthToken = (token: string | null) => {
   } else {
     delete api.defaults.headers.common['Authorization'];
   }
+};
+
+// 实时聊天相关接口
+export interface RealTimeMessage {
+  id: string;
+  sender_user_id: string;
+  sender_name: string;
+  content: string;
+  message_type: string;
+  sequence_number: number;
+  created_at: string;
+  is_deleted: boolean;
+}
+
+export const getRealTimeMessages = async (
+  matchId: string, 
+  limit: number = 50, 
+  offset: number = 0
+): Promise<RealTimeMessage[]> => {
+  const response = await api.get(`/match-relations/${matchId}/realtime-messages?limit=${limit}&offset=${offset}`);
+  return response.data;
 };
 
 export default api; 

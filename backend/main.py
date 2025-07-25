@@ -1,9 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import router
-from models.database import create_tables
+from models.database import create_tables, get_db
+from sqlalchemy.orm import Session
 import os
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -29,6 +31,18 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(router, prefix="/api/v1", tags=["main"])
+
+# WebSocket端点
+@app.websocket("/ws/chat/{match_id}")
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    match_id: str, 
+    userId: str, 
+    db: Session = Depends(get_db)
+):
+    """WebSocket聊天端点"""
+    from services.websocket_service import websocket_service
+    await websocket_service.handle_websocket_connection(websocket, match_id, userId, db)
 
 def check_environment():
     """检查环境配置"""
@@ -104,10 +118,16 @@ async def startup_event():
     
     # 启动定时任务调度服务
     await scheduler_service.start()
+    
+    # 启动WebSocket清理任务
+    from services.websocket_service import cleanup_typing_status
+    asyncio.create_task(cleanup_typing_status())
+    print("💬 WebSocket服务初始化完成")
 
     print("🚀 SoulLink API 启动完成！")
     print("📚 API文档: http://localhost:8000/docs")
     print("🔧 健康检查: http://localhost:8000/health")
+    print("💬 WebSocket聊天: ws://localhost:8000/ws/chat/{match_id}?userId={user_id}")
 
 @app.on_event("shutdown")
 async def shutdown_event():

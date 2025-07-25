@@ -21,7 +21,8 @@ class AIService:
         system_prompt: str, 
         conversation_history: List[Dict[str, str]], 
         scenario_context: str,
-        user_message: str
+        user_message: str,
+        is_market_chat: bool = False
     ) -> Tuple[str, Dict[str, Any]]:
         """
         生成agent回复
@@ -31,17 +32,29 @@ class AIService:
             conversation_history: 对话历史
             scenario_context: 场景上下文
             user_message: 用户消息
+            is_market_chat: 是否是市场聊天（与其他用户对话）
             
         Returns:
             Tuple[agent_response, metadata]
         """
         try:
             # 构建完整的系统提示
+            market_chat_instruction = ""
+            if is_market_chat:
+                market_chat_instruction = """
+
+重要提示：你现在正在与一个用户进行聊天，对方通过情感匹配市场发现了你。
+- 这不是和你的创造者的对话，而是和一个想要了解你的用户进行对话
+- 可以适当展示你的个性特点，但不要过于亲密或透露过多私人信息
+- 保持自然的交流节奏，不要显得过于主动或被动
+"""
+            
             full_system_prompt = f"""
 {system_prompt}
 
 场景背景：
 {scenario_context}
+{market_chat_instruction}
 
 请根据你的人格特征，在当前场景下自然地回应用户。保持角色一致性，回复应该符合你的性格特点。
 """

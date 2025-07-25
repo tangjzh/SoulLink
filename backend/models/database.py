@@ -204,6 +204,28 @@ class MatchRelation(Base):
     target_agent = relationship("MarketAgent", foreign_keys=[target_agent_id], back_populates="received_matches")
     auto_conversations = relationship("AutoConversation", back_populates="match_relation")
 
+class RealTimeMessage(Base):
+    """实时聊天消息"""
+    __tablename__ = "realtime_messages"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    match_relation_id = Column(String, ForeignKey("match_relations.id"), nullable=False)
+    sender_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    message_type = Column(String(20), default="text")  # text, system, image, etc.
+    
+    # 消息状态
+    is_deleted = Column(Boolean, default=False)
+    edited_at = Column(DateTime)  # 编辑时间
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 消息序号（用于排序和分页）
+    sequence_number = Column(Integer, nullable=False)
+    
+    # Relationships
+    match_relation = relationship("MatchRelation")
+    sender_user = relationship("User")
+
 class AutoConversation(Base):
     """自动对话记录"""
     __tablename__ = "auto_conversations"

@@ -150,24 +150,24 @@ class MatchService:
                     {"sender_type": "system", "content": f"对话对象: {current_receiver.display_name}"}
                 ]
                 
-                # 添加历史对话
-                for msg in conversation_context[-6:]:  # 只保留最近6条消息
-                    context_messages.append({
-                        "sender_type": "user" if msg["sender"] == "user" else "assistant",
-                        "content": msg["content"]
-                    })
-                
                 # 生成AI回复
                 if current_sender == agent1:
                     sender_persona = persona1
                 else:
                     sender_persona = persona2
                 
+                # 添加历史对话
+                for msg in conversation_context[-6:-1]:  # 只保留最近6条消息
+                    context_messages.append({
+                        "sender_type": "user" if msg["sender"] == current_sender.display_name else "assistant",
+                        "content": msg["content"]
+                    })
+                
                 response, metadata = await self.ai_service.generate_agent_response(
                     system_prompt=sender_persona.system_prompt,
                     conversation_history=context_messages,
                     scenario_context=scenario.context,
-                    user_message="继续这个对话场景",
+                    user_message=conversation_context[-1]["content"],
                     # user_id=current_sender.user_id
                 )
                 
@@ -206,7 +206,7 @@ class MatchService:
                     love_score_delta=love_delta,
                     friendship_score_delta=friendship_delta,
                     evaluation_reason=analysis,
-                    evaluator_model="gpt-4"
+                    evaluator_model=self.ai_service.model
                 )
                 db.add(evaluation)
                 

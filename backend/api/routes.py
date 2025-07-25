@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List, Dict, Any, Optional
 import uuid
 import random
@@ -11,7 +12,7 @@ import asyncio
 from models.database import (
     get_db, User, DigitalPersona, Scenario, Conversation, ConversationMessage, 
     MessageFeedback, PromptOptimization, MarketAgent, MatchRelation, AutoConversation,
-    AutoConversationMessage
+    AutoConversationMessage, RealTimeMessage
 )
 from services.ai_service import ai_service, scenario_service
 from services.match_service import match_service
@@ -71,6 +72,22 @@ class ConversationResponse(BaseModel):
     scenario: Dict[str, Any]
     created_at: datetime
 
+class ConversationWithStats(BaseModel):
+    id: str
+    title: Optional[str]
+    scenario: Dict[str, Any]
+    created_at: datetime
+    message_count: int
+    last_message: Optional[str]
+    duration: str
+
+class PaginatedConversationsResponse(BaseModel):
+    conversations: List[ConversationWithStats]
+    total: int
+    page: int
+    size: int
+    total_pages: int
+
 class MessageCreate(BaseModel):
     conversation_id: str
     content: str
@@ -96,6 +113,20 @@ class PersonalityAnswer(BaseModel):
 class PersonalityQuestionRequest(BaseModel):
     previous_answers: List[Dict[str, Any]] = []
     scenario: Dict[str, Any]
+
+class MarketConversationCreate(BaseModel):
+    target_persona_id: str
+    title: Optional[str] = None
+
+class RealTimeMessageResponse(BaseModel):
+    id: str
+    sender_user_id: str
+    sender_name: str
+    content: str
+    message_type: str
+    sequence_number: int
+    created_at: datetime
+    is_deleted: bool
 
 # 用户认证依赖
 async def get_current_user(
@@ -456,6 +487,220 @@ async def get_conversations(
             detail=f"获取对话列表失败：{str(e)}"
         )
 
+@router.get("/conversations/paginated", response_model=PaginatedConversationsResponse)
+async def get_conversations_paginated(
+    page: int = 1,
+    size: int = 10,
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    sort_by: str = "date_desc",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取用户的对话列表（分页）"""
+    try:
+        # 基础查询
+        query = db.query(Conversation).filter(
+            Conversation.user_id == current_user.id,
+            Conversation.is_active == True
+        )
+        
+        # 搜索筛选
+        if search:
+            search_term = f"%{search}%"
+            query = query.join(Scenario).filter(
+                or_(
+                    Conversation.title.ilike(search_term),
+                    Scenario.name.ilike(search_term),
+                    Scenario.description.ilike(search_term)
+                )
+            )
+        
+        # 分类筛选
+        if category and category != "all":
+            query = query.join(Scenario).filter(Scenario.category == category)
+        
+        # 排序
+        if sort_by == "date_desc":
+            query = query.order_by(Conversation.updated_at.desc())
+        elif sort_by == "date_asc":
+            query = query.order_by(Conversation.updated_at.asc())
+        elif sort_by == "title":
+            query = query.order_by(Conversation.title.asc())
+        else:
+            query = query.order_by(Conversation.updated_at.desc())
+        
+        # 获取总数
+        total = query.count()
+        
+        # 分页
+        offset = (page - 1) * size
+        conversations = query.offset(offset).limit(size).all()
+        
+        # 计算总页数
+        total_pages = (total + size - 1) // size
+        
+        # 构建结果
+        result_conversations = []
+        for conv in conversations:
+            # 获取消息统计
+            message_count = db.query(ConversationMessage).filter(
+                ConversationMessage.conversation_id == conv.id
+            ).count()
+            
+            # 获取最后一条消息
+            last_message_obj = db.query(ConversationMessage).filter(
+                ConversationMessage.conversation_id == conv.id
+            ).order_by(ConversationMessage.created_at.desc()).first()
+            
+            last_message = None
+            if last_message_obj:
+                content = last_message_obj.content
+                if len(content) > 50:
+                    last_message = content[:50] + "..."
+                else:
+                    last_message = content
+            
+            # 计算时间差
+            duration = calculate_duration(conv.created_at)
+            
+            scenario = conv.scenario
+            result_conversations.append(ConversationWithStats(
+                id=str(conv.id),
+                title=conv.title,
+                scenario={
+                    "id": str(scenario.id),
+                    "name": scenario.name,
+                    "description": scenario.description,
+                    "context": scenario.context,
+                    "category": scenario.category,
+                    "difficulty_level": scenario.difficulty_level
+                },
+                created_at=conv.created_at,
+                message_count=message_count,
+                last_message=last_message or "暂无消息",
+                duration=duration
+            ))
+        
+        return PaginatedConversationsResponse(
+            conversations=result_conversations,
+            total=total,
+            page=page,
+            size=size,
+            total_pages=total_pages
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取对话列表失败：{str(e)}"
+        )
+
+def calculate_duration(created_at: datetime) -> str:
+    """计算时间差"""
+    from datetime import datetime as dt, timezone
+    
+    now = dt.now(timezone.utc)
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    
+    diff = now - created_at
+    
+    days = diff.days
+    hours = diff.seconds // 3600
+    minutes = (diff.seconds % 3600) // 60
+    
+    if days > 0:
+        return f"{days}天前"
+    elif hours > 0:
+        return f"{hours}小时前"
+    elif minutes > 0:
+        return f"{minutes}分钟前"
+    else:
+        return "刚刚"
+
+@router.post("/market-conversations", response_model=ConversationResponse)
+async def create_market_conversation(
+    conv_data: MarketConversationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """创建市场聊天对话（与其他用户的数字人格聊天）"""
+    try:
+        # 验证目标数字人格是否存在且在市场中
+        target_persona = db.query(DigitalPersona).filter(
+            DigitalPersona.id == conv_data.target_persona_id,
+            DigitalPersona.is_active == True
+        ).first()
+        
+        if not target_persona:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="目标数字人格不存在"
+            )
+        
+        # 检查目标数字人格是否在市场中（有对应的MarketAgent）
+        market_agent = db.query(MarketAgent).filter(
+            MarketAgent.digital_persona_id == conv_data.target_persona_id,
+            MarketAgent.is_active == True
+        ).first()
+        
+        if not market_agent:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="该数字人格未在市场中投放，无法聊天"
+            )
+        
+        # 获取默认场景（初次见面）
+        scenario = db.query(Scenario).filter(
+            Scenario.category == "初次见面",
+            Scenario.is_active == True
+        ).first()
+        
+        if not scenario:
+            # 如果没有初次见面场景，使用第一个可用场景
+            scenario = db.query(Scenario).filter(Scenario.is_active == True).first()
+            
+        if not scenario:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="没有可用的对话场景"
+            )
+        
+        # 创建市场对话
+        conversation = Conversation(
+            user_id=current_user.id,
+            digital_persona_id=target_persona.id,  # 使用目标数字人格
+            scenario_id=scenario.id,
+            title=conv_data.title or f"与{target_persona.name}的市场聊天"
+        )
+        
+        db.add(conversation)
+        db.commit()
+        db.refresh(conversation)
+        
+        return ConversationResponse(
+            id=str(conversation.id),
+            title=conversation.title,
+            scenario={
+                "id": str(scenario.id),
+                "name": scenario.name,
+                "description": scenario.description,
+                "context": scenario.context,
+                "category": scenario.category,
+                "difficulty_level": scenario.difficulty_level
+            },
+            created_at=conversation.created_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"创建市场对话失败：{str(e)}"
+        )
+
 @router.post("/messages", response_model=MessageResponse)
 async def send_message(
     message_data: MessageCreate,
@@ -505,11 +750,15 @@ async def send_message(
         persona = conversation.digital_persona
         scenario = conversation.scenario
         
+        # 检查是否是市场对话（与其他用户的数字人格聊天）
+        is_market_chat = persona.user_id != current_user.id
+        
         agent_response, metadata = await ai_service.generate_agent_response(
             system_prompt=persona.system_prompt,
             conversation_history=conversation_history,
             scenario_context=scenario.context,
-            user_message=message_data.content
+            user_message=message_data.content,
+            is_market_chat=is_market_chat
         )
         
         # 保存AI回复
@@ -884,6 +1133,7 @@ class MatchRelationCreate(BaseModel):
 class MatchRelationResponse(BaseModel):
     id: str
     target_agent: Dict[str, Any]
+    target_user_id: Optional[str]
     match_type: str
     love_compatibility_score: float
     friendship_compatibility_score: float
@@ -1035,10 +1285,12 @@ async def create_match_relation(
             id=str(match_relation.id),
             target_agent={
                 "id": str(target_agent.id),
+                "digital_persona_id": str(target_agent.digital_persona_id),
                 "display_name": target_agent.display_name,
                 "display_description": target_agent.display_description,
                 "tags": json.loads(target_agent.tags or "[]")
             },
+            target_user_id=str(match_relation.target_user_id),
             match_type=match_relation.match_type,
             love_compatibility_score=match_relation.love_compatibility_score,
             friendship_compatibility_score=match_relation.friendship_compatibility_score,
@@ -1080,14 +1332,22 @@ async def get_match_relations(
             else:
                 target_agent = match.initiator_agent
             
+            # 确定目标用户ID
+            if match.initiator_user_id == current_user.id:
+                target_user_id = match.target_user_id
+            else:
+                target_user_id = match.initiator_user_id
+            
             result.append(MatchRelationResponse(
                 id=str(match.id),
                 target_agent={
                     "id": str(target_agent.id),
+                    "digital_persona_id": str(target_agent.digital_persona_id),
                     "display_name": target_agent.display_name,
                     "display_description": target_agent.display_description,
                     "tags": json.loads(target_agent.tags or "[]")
                 },
+                target_user_id=str(target_user_id),
                 match_type=match.match_type,
                 love_compatibility_score=match.love_compatibility_score,
                 friendship_compatibility_score=match.friendship_compatibility_score,
@@ -1265,4 +1525,58 @@ async def get_match_conversations(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取对话历史失败：{str(e)}"
+        )
+
+@router.get("/match-relations/{match_id}/realtime-messages", response_model=List[RealTimeMessageResponse])
+async def get_realtime_messages(
+    match_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取实时聊天消息历史"""
+    try:
+        # 验证匹配关系存在且用户有权限
+        match_relation = db.query(MatchRelation).filter(
+            MatchRelation.id == match_id,
+            (MatchRelation.initiator_user_id == current_user.id) | 
+            (MatchRelation.target_user_id == current_user.id)
+        ).first()
+        
+        if not match_relation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="匹配关系不存在或无权限"
+            )
+        
+        # 获取实时聊天消息
+        messages = db.query(RealTimeMessage).filter(
+            RealTimeMessage.match_relation_id == match_id,
+            RealTimeMessage.is_deleted == False
+        ).order_by(RealTimeMessage.sequence_number.desc()).offset(offset).limit(limit).all()
+        
+        # 构建响应
+        result = []
+        for msg in reversed(messages):  # 反转以获得正确的时间顺序
+            sender_user = db.query(User).filter(User.id == msg.sender_user_id).first()
+            result.append(RealTimeMessageResponse(
+                id=str(msg.id),
+                sender_user_id=str(msg.sender_user_id),
+                sender_name=sender_user.username if sender_user else "未知用户",
+                content=msg.content,
+                message_type=msg.message_type,
+                sequence_number=msg.sequence_number,
+                created_at=msg.created_at,
+                is_deleted=msg.is_deleted
+            ))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取实时聊天消息失败：{str(e)}"
         )

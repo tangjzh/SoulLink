@@ -355,13 +355,13 @@ const PersonaCreate: React.FC = () => {
             }}>
               {formData.interests.length > 0 ? (
                 formData.interests.map((interest) => (
-                  <Chip
-                    key={interest}
-                    label={interest}
-                    onDelete={() => handleRemoveInterest(interest)}
-                    color="primary"
+                <Chip
+                  key={interest}
+                  label={interest}
+                  onDelete={() => handleRemoveInterest(interest)}
+                  color="primary"
                     variant="filled"
-                  />
+                />
                 ))
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
