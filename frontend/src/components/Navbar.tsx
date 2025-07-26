@@ -257,7 +257,7 @@ const Navbar: React.FC = () => {
               '& .MuiPaper-root': {
                 minWidth: isMobile ? 200 : 220,
                 mt: 1,
-                borderRadius: 0,
+                // borderRadius: 0,
               }
             }}
           >
