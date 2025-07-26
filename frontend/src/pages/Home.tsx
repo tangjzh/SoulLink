@@ -127,7 +127,7 @@ const Home: React.FC = () => {
                 mr: 3,
               }}
             >
-              <Psychology sx={{ fontSize: { xs: 30, md: 40 } }} />
+              <Box component="img" src="/assets/logo.svg" alt="SoulLink" sx={{ height: { xs: '3rem', lg: '6rem' } }} />
             </Avatar>
             <Box>
               <Typography variant={isMobile ? "h4" : "h3"} sx={{ fontWeight: 700, mb: 1 }}>

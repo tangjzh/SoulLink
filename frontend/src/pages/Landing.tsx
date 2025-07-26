@@ -367,10 +367,15 @@ const Landing: React.FC = () => {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 mb: 2,
-                textShadow: '0 0 30px rgba(139, 92, 246, 0.5)'
+                textShadow: '0 0 30px rgba(139, 92, 246, 0.5)',
+                display: 'flex',
+                alignItems: 'center'
               }}
             >
-              SoulLink
+              <Box component="img" src="/assets/logo.svg" alt="SoulLink" sx={{ height: { xs: '3rem', lg: '6rem' }, mt: 0.5 }} />
+              <Box component="span" sx={{ fontSize: { xs: '3rem', lg: '5rem' }, ml: 1 }}>
+                SoulLink
+              </Box>
             </Typography>
           </Box>
         </Fade>
@@ -386,8 +391,7 @@ const Landing: React.FC = () => {
               letterSpacing: '0.02em'
             }}
           >
-            让AI Agent帮你,
-            找到那个TA
+            让AI Agent帮你，找到那个TA
           </Typography>
         </Fade>
 

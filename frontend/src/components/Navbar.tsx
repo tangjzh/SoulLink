@@ -59,9 +59,9 @@ const Navbar: React.FC = () => {
           color="inherit"
           aria-label="logo"
           onClick={() => navigate('/home')}
-          sx={{ mr: { xs: 1, sm: 2 } }}
+          // sx={{ mr: { xs: 1, sm: 2 } }}
         >
-          <Psychology fontSize={isMobile ? "medium" : "large"} />
+          <Box component="img" src="/assets/logo.svg" alt="SoulLink" sx={{ height: { xs: '3rem', lg: '2rem' } }} />
         </IconButton>
         
         <Typography
