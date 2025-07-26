@@ -286,7 +286,8 @@ const Login: React.FC = () => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Psychology color="primary" sx={{ fontSize: 40, mr: 2 }} />
+            {/* <Psychology color="primary" sx={{ fontSize: 40, mr: 2 }} /> */}
+            <img src="assets/logo.svg" alt="SoulLink" style={{ width: 40, height: 40, marginRight: 5 }} />
             <Typography component="h1" variant="h4" color="primary">
               SoulLink
             </Typography>
