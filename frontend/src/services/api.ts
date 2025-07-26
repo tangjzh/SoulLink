@@ -41,6 +41,7 @@ export interface Conversation {
   id: string;
   title?: string;
   scenario: Scenario;
+  digital_persona_id: string;
   created_at: string;
 }
 
@@ -48,6 +49,7 @@ export interface ConversationWithStats {
   id: string;
   title?: string;
   scenario: Scenario;
+  digital_persona_id: string;
   created_at: string;
   message_count: number;
   last_message?: string;

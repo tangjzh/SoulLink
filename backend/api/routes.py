@@ -71,12 +71,14 @@ class ConversationResponse(BaseModel):
     id: str
     title: Optional[str]
     scenario: Dict[str, Any]
+    digital_persona_id: str
     created_at: datetime
 
 class ConversationWithStats(BaseModel):
     id: str
     title: Optional[str]
     scenario: Dict[str, Any]
+    digital_persona_id: str
     created_at: datetime
     message_count: int
     last_message: Optional[str]
@@ -440,6 +442,7 @@ async def create_conversation(
                 "category": scenario.category,
                 "difficulty_level": scenario.difficulty_level
             },
+            digital_persona_id=str(persona.id),
             created_at=conversation.created_at
         )
         
@@ -477,6 +480,7 @@ async def get_conversations(
                     "category": scenario.category,
                     "difficulty_level": scenario.difficulty_level
                 },
+                digital_persona_id=str(conv.digital_persona_id),
                 created_at=conv.created_at
             ))
         
@@ -577,6 +581,7 @@ async def get_conversations_paginated(
                     "category": scenario.category,
                     "difficulty_level": scenario.difficulty_level
                 },
+                digital_persona_id=str(conv.digital_persona_id),
                 created_at=conv.created_at,
                 message_count=message_count,
                 last_message=last_message or "暂无消息",

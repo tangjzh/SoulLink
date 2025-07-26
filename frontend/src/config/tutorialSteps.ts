@@ -117,14 +117,14 @@ export const tutorialSteps: TutorialStep[] = [
 //   },
 
   // 导航栏教程
-  {
-    id: 'navbar-navigation',
-    title: '导航栏',
-    content: '使用顶部导航栏可以快速切换到不同功能页面。所有主要功能都可以从这里访问。',
-    target: '#tutorial-navbar',
-    position: 'bottom',
-    page: '/home'
-  }
+//   {
+//     id: 'navbar-navigation',
+//     title: '导航栏',
+//     content: '使用顶部导航栏可以快速切换到不同功能页面。所有主要功能都可以从这里访问。',
+//     target: '#tutorial-navbar',
+//     position: 'bottom',
+//     page: '/home'
+//   }
 ];
 
 // 按页面分组的教程步骤

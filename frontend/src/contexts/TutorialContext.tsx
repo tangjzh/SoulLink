@@ -51,6 +51,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
     
     if (!neverShow && fromLanding === 'true') {
       setShowTutorial(true);
+      // 立即清除标记，避免刷新时重复显示
+      sessionStorage.removeItem('from_landing');
     }
   }, []);
 
@@ -75,6 +77,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
     } else {
       setIsActive(false);
       setCurrentStep(0);
+      // 教程完成时确保清除标记
+      sessionStorage.removeItem('from_landing');
     }
   };
 
@@ -88,6 +92,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
     setIsActive(false);
     setShowTutorial(false);
     setCurrentStep(0);
+    // 确保清除标记
+    sessionStorage.removeItem('from_landing');
   };
 
   const setNeverShowAgain = () => {
@@ -95,6 +101,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({ children }) 
     setShowTutorial(false);
     setIsActive(false);
     setCurrentStep(0);
+    // 确保清除标记
+    sessionStorage.removeItem('from_landing');
   };
 
   const setSteps = (newSteps: TutorialStep[]) => {

@@ -29,9 +29,9 @@ import {
   Edit,
   Psychology,
   Person,
-  Settings,
-  Refresh,
   ArrowBack,
+  HelpOutline,
+  Info,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -41,9 +41,11 @@ import {
   sendMessage,
   submitFeedback,
   getConversations,
+  getDigitalPersonas,
   Scenario,
   Message,
   Conversation,
+  DigitalPersona,
 } from '../services/api';
 
 const Chat: React.FC = () => {
@@ -58,6 +60,7 @@ const Chat: React.FC = () => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [currentPersona, setCurrentPersona] = useState<DigitalPersona | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,6 +71,8 @@ const Chat: React.FC = () => {
   const [error, setError] = useState('');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<string | null>(null);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [agentDetailsOpen, setAgentDetailsOpen] = useState(false);
 
   // 主动消息相关状态
   const [isInitialized, setIsInitialized] = useState(false);
@@ -196,6 +201,45 @@ const Chat: React.FC = () => {
     };
   }, []);
 
+  // 加载数字人格信息
+  useEffect(() => {
+    const loadPersona = async () => {
+      // 确定要加载的persona ID：新对话模式使用URL参数，恢复对话模式使用conversation中的ID
+      let targetPersonaId = personaId;
+      if (isContinueMode && currentConversation) {
+        targetPersonaId = currentConversation.digital_persona_id;
+      }
+      
+      if (!targetPersonaId) {
+        console.log('Chat: 没有可用的persona ID', { 
+          personaId, 
+          isContinueMode, 
+          conversationId: currentConversation?.id,
+          conversationPersonaId: currentConversation?.digital_persona_id 
+        });
+        return;
+      }
+      
+      try {
+        console.log('Chat: 开始加载数字人格', { targetPersonaId });
+        const personas = await getDigitalPersonas();
+        const targetPersona = personas.find(p => p.id === targetPersonaId);
+        if (targetPersona) {
+          setCurrentPersona(targetPersona);
+          console.log('Chat: 成功加载数字人格', { name: targetPersona.name, id: targetPersona.id });
+        } else {
+          console.error('Chat: 找不到指定的数字人格', { targetPersonaId, availablePersonas: personas.map(p => p.id) });
+          setError('数字人格不存在');
+        }
+      } catch (err: any) {
+        console.error('Chat: 加载数字人格失败', err);
+        setError('加载数字人格失败：' + err.message);
+      }
+    };
+
+    loadPersona();
+  }, [personaId, isContinueMode, currentConversation]);
+
   // 加载场景
   useEffect(() => {
     if (!isContinueMode) {
@@ -229,6 +273,11 @@ const Chat: React.FC = () => {
           }
           
           // 设置对话状态
+          console.log('Chat: 恢复对话模式 - 设置对话状态', { 
+            conversationId: conversation.id, 
+            digital_persona_id: conversation.digital_persona_id,
+            scenario: conversation.scenario?.name 
+          });
           setCurrentConversation(conversation);
           setSelectedScenario(conversation.scenario);
           
@@ -520,14 +569,14 @@ const Chat: React.FC = () => {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title={isContinueMode ? "返回对话记录" : "重新开始"}>
-                <IconButton onClick={handleRestart}>
-                  <Refresh />
+              <Tooltip title="帮助指南">
+                <IconButton onClick={() => setHelpDialogOpen(true)}>
+                  <HelpOutline />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="设置">
-                <IconButton>
-                  <Settings />
+              <Tooltip title="智能体详情">
+                <IconButton onClick={() => setAgentDetailsOpen(true)}>
+                  <Info />
                 </IconButton>
               </Tooltip>
             </Box>
@@ -709,6 +758,190 @@ const Chat: React.FC = () => {
           >
             {feedbackLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
             {feedbackLoading ? '处理中...' : '提交反馈'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 帮助指南对话框 */}
+      <Dialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <HelpOutline color="primary" />
+            <Typography variant="h6">对话指南</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 1 }}>
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              💬 如何与智能体对话：
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • AI会根据选择的场景主动开启对话
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 超过10秒无回复时，AI会主动发起新话题
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 按回车发送消息，Shift+回车换行
+              </Typography>
+            </Box>
+            
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              👍 反馈机制：
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 对AI回复可以点赞👍或点踩👎
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 点击✏️图标可添加具体的改进建议
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 反馈会帮助AI更好地理解您的偏好
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              🎯 对话目的：
+            </Typography>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 通过多轮对话了解您的人格特质
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • 根据您的反馈不断优化人格档案
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                • 为后续的匹配推荐提供准确依据
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHelpDialogOpen(false)} variant="contained">
+            明白了
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 智能体详情对话框 */}
+      <Dialog
+        open={agentDetailsOpen}
+        onClose={() => setAgentDetailsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Psychology color="secondary" />
+            <Typography variant="h6">数字人格详情</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 1 }}>
+            <Box sx={{ mb: 3, textAlign: 'center' }}>
+              <Avatar
+                sx={{
+                  width: 80,
+                  height: 80,
+                  mx: 'auto',
+                  mb: 2,
+                  bgcolor: 'secondary.main',
+                }}
+              >
+                <Psychology sx={{ fontSize: 40 }} />
+              </Avatar>
+              <Typography variant="h6" gutterBottom>
+                {currentPersona?.name || '数字人格'}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 2 }}>
+                <Chip label="AI智能体" size="small" color="secondary" />
+                <Chip 
+                  label={`优化 ${currentPersona?.optimization_count || 0} 次`} 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined" 
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                {currentPersona?.description || '暂无描述'}
+              </Typography>
+            </Box>
+
+            <Divider sx={{ mb: 2 }} />
+
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              🧠 人格特征：
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>人格评分：</strong>{currentPersona?.personality_score ? `${currentPersona.personality_score}/100` : '未评估'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>创建时间：</strong>{currentPersona?.created_at ? new Date(currentPersona.created_at).toLocaleDateString('zh-CN') : '未知'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>优化次数：</strong>{currentPersona?.optimization_count || 0} 次
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              🎭 当前场景：
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>场景名称：</strong>{selectedScenario?.name || '未选择'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <strong>场景描述：</strong>{selectedScenario?.description || '暂无描述'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>难度等级：</strong>{selectedScenario?.difficulty_level || '未知'}
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              🤖 系统设定：
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.75rem',
+                  whiteSpace: 'pre-wrap',
+                  maxHeight: '120px',
+                  overflow: 'auto'
+                }}>
+                  {currentPersona?.system_prompt || '暂无系统设定'}
+                </Typography>
+              </Paper>
+            </Box>
+
+            <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+              💡 智能体状态：
+            </Typography>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • {currentPersona ? '已加载人格档案' : '正在加载人格档案...'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                • {selectedScenario ? '场景已激活' : '等待场景选择'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                • {currentConversation ? '对话会话已建立' : '等待建立对话会话'}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAgentDetailsOpen(false)} variant="contained">
+            关闭
           </Button>
         </DialogActions>
       </Dialog>

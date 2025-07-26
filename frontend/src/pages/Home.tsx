@@ -10,27 +10,17 @@ import {
   Avatar,
   useTheme,
   useMediaQuery,
-  LinearProgress,
-  Chip,
-  IconButton,
-  Divider,
   Fade,
   Grow,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   Psychology,
-  Hub,
-  TrendingUp,
   History,
   PersonAdd,
-  Chat,
   Explore,
-  AutoAwesome,
-  Rocket,
   Favorite,
   PlayArrow,
-  Assessment,
 } from '@mui/icons-material';
 
 const Home: React.FC = () => {
@@ -78,32 +68,7 @@ const Home: React.FC = () => {
     },
   ];
 
-  const systemStats = [
-    {
-      icon: <AutoAwesome sx={{ fontSize: 40, color: '#8B5CF6' }} />,
-      title: 'AI模拟运行',
-      status: '活跃',
-      progress: 85,
-      description: '虚拟约会宇宙正在运行',
-      color: 'success.main',
-    },
-    {
-      icon: <Assessment sx={{ fontSize: 40, color: '#EC4899' }} />,
-      title: '匹配分析',
-      status: '进行中',
-      progress: 65,
-      description: '正在分析兼容性数据',
-      color: 'info.main',
-    },
-    {
-      icon: <Rocket sx={{ fontSize: 40, color: '#F59E0B' }} />,
-      title: '系统优化',
-      status: '就绪',
-      progress: 92,
-      description: '准备开始新的模拟',
-      color: 'warning.main',
-    },
-  ];
+
 
   return (
     <Box sx={{ py: 2 }}>
@@ -166,7 +131,7 @@ const Home: React.FC = () => {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  开始创建
+                  创建您的数字分身
                 </Button>
               </Box>
             </Grid>
@@ -234,125 +199,212 @@ const Home: React.FC = () => {
         </Grid>
       </Box>
 
-      {/* 系统状态区域 */}
+      {/* 进阶指南区域 */}
       <Box>
         <Typography variant={isMobile ? "h5" : "h4"} sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
-          系统状态
+          进阶指南
         </Typography>
         
         <Grid container spacing={3}>
-          {/* 系统状态卡片 */}
-          <Grid item xs={12} md={8}>
-            <Card sx={{ height: '100%' }}>
+          {/* 渐构自我 */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+              color: 'white'
+            }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                  数字宇宙运行状态
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    mr: 2, 
+                    width: 48, 
+                    height: 48 
+                  }}>
+                    <Psychology sx={{ fontSize: 28 }} />
+                  </Avatar>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    渐构自我
+                  </Typography>
+                </Box>
+                
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                  <strong>目的：</strong>构建你的数字人格档案，让AI深度理解你的内在特质、价值观和情感模式。
                 </Typography>
                 
-                {systemStats.map((stat, index) => (
-                  <Box key={index} sx={{ mb: index < systemStats.length - 1 ? 3 : 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Avatar sx={{ bgcolor: 'transparent', mr: 2, width: 40, height: 40 }}>
-                        {stat.icon}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                            {stat.title}
-                          </Typography>
-                          <Chip 
-                            label={stat.status} 
-                            size="small" 
-                            color={stat.progress > 80 ? 'success' : stat.progress > 60 ? 'warning' : 'info'}
-                            variant="outlined"
-                          />
-                        </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {stat.description}
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={stat.progress}
-                          color={stat.progress > 80 ? 'success' : stat.progress > 60 ? 'warning' : 'info'}
-                          sx={{ height: 6, borderRadius: 3 }}
-                        />
-                      </Box>
-                    </Box>
-                    {index < systemStats.length - 1 && <Divider sx={{ mt: 2 }} />}
-                  </Box>
-                ))}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* 建议和提示 */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                  下一步建议
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                  <strong>使用方法：</strong>
                 </Typography>
                 
                 <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
                     <Box
                       sx={{
-                        width: 8,
-                        height: 8,
+                        width: 6,
+                        height: 6,
                         borderRadius: '50%',
-                        bgcolor: 'primary.main',
+                        bgcolor: 'rgba(255,255,255,0.8)',
                         mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
                       }}
                     />
-                    <Typography variant="body2">
-                      完善你的数字人格档案
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      填写基本信息和兴趣偏好，作为基本依据
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
                     <Box
                       sx={{
-                        width: 8,
-                        height: 8,
+                        width: 6,
+                        height: 6,
                         borderRadius: '50%',
-                        bgcolor: 'secondary.main',
+                        bgcolor: 'rgba(255,255,255,0.8)',
                         mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
                       }}
                     />
-                    <Typography variant="body2">
-                      参与更多虚拟互动
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      与大语言模型对话，它将通过问卷和主动引导，完善您的人格特征
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                     <Box
                       sx={{
-                        width: 8,
-                        height: 8,
+                        width: 6,
+                        height: 6,
                         borderRadius: '50%',
-                        bgcolor: 'info.main',
+                        bgcolor: 'rgba(255,255,255,0.8)',
                         mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
                       }}
                     />
-                    <Typography variant="body2">
-                      查看AI分析的匹配建议
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      在多轮对话中，大语言模型根据互动反馈调整您的人格设定，直到满意为止
                     </Typography>
                   </Box>
                 </Box>
 
                 <Button
-                  variant="outlined"
-                  startIcon={<Hub />}
-                  onClick={() => navigate('/match-market')}
+                  variant="contained"
+                  startIcon={<PersonAdd />}
+                  onClick={() => navigate('/personas')}
                   fullWidth
                   sx={{
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': {
-                      bgcolor: 'primary.main',
-                      color: 'white',
+                      bgcolor: 'rgba(255,255,255,0.3)',
                     }
                   }}
                 >
-                  查看匹配进度
+                  管理数字人格
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* 灵魂匹配 */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
+              color: 'white'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    mr: 2, 
+                    width: 48, 
+                    height: 48 
+                  }}>
+                    <Favorite sx={{ fontSize: 28 }} />
+                  </Avatar>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    灵魂匹配
+                  </Typography>
+                </Box>
+                
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                  <strong>目的：</strong>通过AI算法在无数平行宇宙中模拟互动，找到与你灵魂最契合的伴侣。
+                </Typography>
+                
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                  <strong>使用方法：</strong>
+                </Typography>
+                
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: 'rgba(255,255,255,0.8)',
+                        mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      在链接空间中探索，发现您的潜在伴侣
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: 'rgba(255,255,255,0.8)',
+                        mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      将您的档案投放至链接空间，以便其他用户发现您
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        bgcolor: 'rgba(255,255,255,0.8)',
+                        mr: 2,
+                        mt: 0.5,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      您的人格代理将自动与潜在伴侣进行互动，评估匹配度，供您参考
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  startIcon={<Explore />}
+                  onClick={() => navigate('/match-market')}
+                  fullWidth
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.3)',
+                    }
+                  }}
+                >
+                  探索链接空间
                 </Button>
               </CardContent>
             </Card>

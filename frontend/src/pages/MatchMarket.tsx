@@ -109,7 +109,7 @@ const MatchMarket: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(3);
   const [marketType, setMarketType] = useState<'love' | 'friendship'>('love');
   
   // 数据状态
@@ -132,6 +132,11 @@ const MatchMarket: React.FC = () => {
   const [menuAnchorEl, setMenuAnchorEl] = useState<{[key: string]: HTMLElement | null}>({});
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
+  // 投放状态检查
+  const [hasLoveAgent, setHasLoveAgent] = useState<boolean>(false);
+  const [hasFriendshipAgent, setHasFriendshipAgent] = useState<boolean>(false);
+  const [agentStatusLoaded, setAgentStatusLoaded] = useState<boolean>(false);
+  
   // 市场探索显示的agents
   const [displayedAgents, setDisplayedAgents] = useState<MarketAgent[]>([]);
   
@@ -143,6 +148,41 @@ const MatchMarket: React.FC = () => {
     display_description: '',
     tags: []
   });
+
+  // 检查用户投放状态
+  const checkAgentStatus = async () => {
+    try {
+      const myAgents = await getMyMarketAgents();
+      const loveAgent = myAgents.find(agent => agent.market_type === 'love');
+      const friendshipAgent = myAgents.find(agent => agent.market_type === 'friendship');
+      
+      setHasLoveAgent(!!loveAgent);
+      setHasFriendshipAgent(!!friendshipAgent);
+      setAgentStatusLoaded(true);
+      
+      console.log('投放状态检查完成:', { 
+        hasLove: !!loveAgent, 
+        hasFriendship: !!friendshipAgent 
+      });
+    } catch (err: any) {
+      console.error('检查投放状态失败:', err);
+      setAgentStatusLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    checkAgentStatus();
+  }, []);
+
+  // 根据当前市场类型和投放状态判断是否禁用tab
+  const isTabDisabled = (tabIndex: number) => {
+    if (!agentStatusLoaded) return false; // 加载中时不禁用
+    if (tabIndex === 3) return false; // 投放管理tab永远不禁用
+    
+    // 空间探索、我的匹配、关注你的三个tab需要根据投放状态判断
+    const currentHasAgent = marketType === 'love' ? hasLoveAgent : hasFriendshipAgent;
+    return !currentHasAgent;
+  };
 
   useEffect(() => {
     loadData();
@@ -518,7 +558,14 @@ const MatchMarket: React.FC = () => {
       }}>
         <Tabs
           value={tabValue}
-          onChange={(_, newValue) => setTabValue(newValue)}
+          onChange={(_, newValue) => {
+            // 如果tab被禁用，自动跳转到投放管理tab
+            if (isTabDisabled(newValue)) {
+              setTabValue(3);
+            } else {
+              setTabValue(newValue);
+            }
+          }}
           centered={!isMobile}
           variant={isMobile ? "fullWidth" : "standard"}
           scrollButtons={isMobile ? "auto" : false}
@@ -540,6 +587,7 @@ const MatchMarket: React.FC = () => {
             label={isMobile ? "探索" : "空间探索"}
             id="match-tab-0"
             aria-controls="match-tabpanel-0"
+            disabled={isTabDisabled(0)}
             // sx={{ borderRadius: 0 }}
           />
           <Tab
@@ -547,6 +595,7 @@ const MatchMarket: React.FC = () => {
             label={isMobile ? "匹配" : "我的匹配"}
             id="match-tab-1"
             aria-controls="match-tabpanel-1"
+            disabled={isTabDisabled(1)}
             // sx={{ borderRadius: 0 }}
           />
           <Tab
@@ -554,6 +603,7 @@ const MatchMarket: React.FC = () => {
             label={isMobile ? "关注" : "关注你的"}
             id="match-tab-2"
             aria-controls="match-tabpanel-2"
+            disabled={isTabDisabled(2)}
             // sx={{ borderRadius: 0 }}
           />
           <Tab
@@ -561,6 +611,7 @@ const MatchMarket: React.FC = () => {
             label={isMobile ? "管理" : "投放管理"}
             id="match-tab-3"
             aria-controls="match-tabpanel-3"
+            disabled={isTabDisabled(3)}
             // sx={{ borderRadius: 0 }}
           />
         </Tabs>
@@ -991,7 +1042,7 @@ const MatchMarket: React.FC = () => {
                             fontSize: isMobile ? '0.875rem' : '0.75rem'
                           }}
                         >
-                          触发对话
+                          触发交互
                         </Button>
                       )}
                       <Button

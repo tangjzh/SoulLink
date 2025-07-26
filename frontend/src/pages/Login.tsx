@@ -52,6 +52,15 @@ const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { login, register, loading } = useAuth();
   
+  // 格式化错误信息的辅助函数
+  const formatErrorMessage = (message: string) => {
+    // 如果错误信息包含分号，将其分行显示
+    if (message.includes(';')) {
+      return message.split(';').map(part => part.trim()).join('\n');
+    }
+    return message;
+  };
+  
   // 从URL参数中获取默认tab
   const defaultTab = searchParams.get('tab') ? parseInt(searchParams.get('tab')!) : 0;
   const [tabValue, setTabValue] = useState(defaultTab);
@@ -82,7 +91,61 @@ const Login: React.FC = () => {
       await login(loginForm.username, loginForm.password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.detail || '登录失败，请检查用户名和密码');
+      console.error('登录错误详情:', err);
+      
+      // 更详细的错误处理
+      if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || err.response.data?.message;
+        
+        switch (status) {
+          case 400:
+            setError('请求参数错误。请检查用户名和密码格式是否正确。');
+            break;
+          case 401:
+            setError('用户名或密码错误。请确认您的登录信息是否正确。');
+            break;
+          case 403:
+            setError('账户已被禁用或权限不足。请联系管理员。');
+            break;
+          case 404:
+            setError('用户不存在。请检查用户名是否正确，或前往注册页面创建账户。');
+            break;
+          case 422:
+            if (detail) {
+              // 处理字段验证错误
+              if (Array.isArray(detail)) {
+                                 const fieldErrors = detail.map((error: any) => {
+                   const field = error.loc?.[error.loc.length - 1] || '未知字段';
+                   return `• ${field}: ${error.msg}`;
+                 }).join('; ');
+                 setError(`输入验证失败:\n${fieldErrors}`);
+              } else {
+                setError(`输入验证失败: ${detail}`);
+              }
+            } else {
+              setError('输入数据格式错误。请检查用户名和密码格式。');
+            }
+            break;
+          case 429:
+            setError('登录尝试过于频繁。请稍后再试。');
+            break;
+          case 500:
+            setError('服务器内部错误。请稍后重试或联系技术支持。');
+            break;
+          case 503:
+            setError('服务暂时不可用。请稍后重试。');
+            break;
+          default:
+            setError(detail || `登录失败 (错误码: ${status})。请稍后重试。`);
+        }
+      } else if (err.request) {
+        // 网络错误
+        setError('网络连接失败。请检查您的网络连接并重试。');
+      } else {
+        // 其他错误
+        setError(`登录过程中发生错误: ${err.message || '未知错误'}`);
+      }
     }
   };
 
@@ -90,11 +153,33 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
     
+    // 前端验证
     if (registerForm.password !== registerForm.confirmPassword) {
       setError('两次输入的密码不一致');
       return;
     }
     
+    // 邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registerForm.email)) {
+      setError('请输入有效的邮箱地址格式 (例: user@example.com)');
+      return;
+    }
+    
+    // 用户名格式验证
+    if (registerForm.username.length < 3) {
+      setError('用户名长度至少3位');
+      return;
+    }
+    
+    // 用户名只能包含字母、数字和下划线
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(registerForm.username)) {
+      setError('用户名只能包含字母、数字和下划线');
+      return;
+    }
+    
+    // 密码强度检查
     if (registerForm.password.length < 6) {
       setError('密码长度至少6位');
       return;
@@ -104,7 +189,78 @@ const Login: React.FC = () => {
       await register(registerForm.username, registerForm.email, registerForm.password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.detail || '注册失败，请稍后重试');
+      console.error('注册错误详情:', err);
+      
+      // 更详细的错误处理
+      if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || err.response.data?.message;
+        
+        switch (status) {
+          case 400:
+            if (detail) {
+              if (detail.includes('username') || detail.includes('用户名')) {
+                setError('用户名格式不正确或包含非法字符。请使用字母、数字和下划线。');
+              } else if (detail.includes('email') || detail.includes('邮箱')) {
+                setError('邮箱格式不正确。请输入有效的邮箱地址。');
+              } else if (detail.includes('password') || detail.includes('密码')) {
+                setError('密码格式不符合要求。密码需要至少6位，建议包含字母和数字。');
+              } else {
+                setError(`注册信息错误: ${detail}`);
+              }
+            } else {
+              setError('注册信息格式错误。请检查所有字段是否正确填写。');
+            }
+            break;
+          case 409:
+            if (detail) {
+              if (detail.includes('username') || detail.includes('用户名')) {
+                setError('用户名已存在。请选择其他用户名。');
+              } else if (detail.includes('email') || detail.includes('邮箱')) {
+                setError('邮箱已被注册。请使用其他邮箱或前往登录页面。');
+              } else {
+                setError(`注册冲突: ${detail}`);
+              }
+            } else {
+              setError('用户名或邮箱已存在。请使用其他信息注册。');
+            }
+            break;
+          case 422:
+            if (detail) {
+              // 处理字段验证错误
+              if (Array.isArray(detail)) {
+                                 const fieldErrors = detail.map((error: any) => {
+                   const field = error.loc?.[error.loc.length - 1] || '未知字段';
+                   const message = error.msg || error.message || '格式错误';
+                   return `• ${field}: ${message}`;
+                 }).join('; ');
+                 setError(`输入验证失败:\n${fieldErrors}`);
+              } else {
+                setError(`输入验证失败: ${detail}`);
+              }
+            } else {
+              setError('输入数据验证失败。请检查所有字段格式是否正确。');
+            }
+            break;
+          case 429:
+            setError('注册请求过于频繁。请稍后再试。');
+            break;
+          case 500:
+            setError('服务器内部错误。请稍后重试或联系技术支持。');
+            break;
+          case 503:
+            setError('注册服务暂时不可用。请稍后重试。');
+            break;
+          default:
+            setError(detail || `注册失败 (错误码: ${status})。请稍后重试。`);
+        }
+      } else if (err.request) {
+        // 网络错误
+        setError('网络连接失败。请检查您的网络连接并重试。');
+      } else {
+        // 其他错误
+        setError(`注册过程中发生错误: ${err.message || '未知错误'}`);
+      }
     }
   };
 
@@ -141,8 +297,19 @@ const Login: React.FC = () => {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
+            <Alert 
+              severity="error" 
+              sx={{ 
+                width: '100%', 
+                mb: 2,
+                '& .MuiAlert-message': {
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }
+              }}
+              onClose={() => setError(null)}
+            >
+              {formatErrorMessage(error)}
             </Alert>
           )}
 
