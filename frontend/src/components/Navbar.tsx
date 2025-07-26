@@ -59,7 +59,7 @@ const Navbar: React.FC = () => {
           color="inherit"
           aria-label="logo"
           onClick={() => navigate('/home')}
-          sx={{ mr: { xs: 1, sm: 2 }, borderRadius: 0 }}
+          sx={{ mr: { xs: 1, sm: 2 } }}
         >
           <Psychology fontSize={isMobile ? "medium" : "large"} />
         </IconButton>
@@ -91,7 +91,7 @@ const Navbar: React.FC = () => {
                   component={Link}
                   to="/home"
                   sx={{ 
-                    borderRadius: 0,
+                    // borderRadius: 0,
                     '&:hover': {
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     }
@@ -107,7 +107,7 @@ const Navbar: React.FC = () => {
                   component={Link}
                   to="/personas"
                   sx={{ 
-                    borderRadius: 0,
+                    // borderRadius: 0,
                     '&:hover': {
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     }
@@ -133,13 +133,13 @@ const Navbar: React.FC = () => {
                 </IconButton>
               </Tooltip>
               
-              <Tooltip title="链接空间" slotProps={{ tooltip: { sx: { borderRadius: 0 } } }}>
+              <Tooltip title="链接空间">
                 <IconButton
                   color="inherit"
                   component={Link}
                   to="/match-market"
                   sx={{ 
-                    borderRadius: 0,
+                    // borderRadius: 0,
                     '&:hover': {
                       backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     }
@@ -158,7 +158,7 @@ const Navbar: React.FC = () => {
                 component={Link}
                 to="/home"
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   }
@@ -173,7 +173,7 @@ const Navbar: React.FC = () => {
                 component={Link}
                 to="/personas"
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   }
@@ -188,7 +188,7 @@ const Navbar: React.FC = () => {
                 component={Link}
                 to="/conversations"
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   }
@@ -203,7 +203,7 @@ const Navbar: React.FC = () => {
                 component={Link}
                 to="/match-market"
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   '&:hover': {
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   }
@@ -224,14 +224,14 @@ const Navbar: React.FC = () => {
             aria-haspopup="true"
             onClick={handleUserMenuOpen}
             color="inherit"
-            sx={{ borderRadius: 0 }}
+            // sx={{ borderRadius: 0 }}
           >
             <Avatar sx={{ 
               width: isMobile ? 28 : 32, 
               height: isMobile ? 28 : 32, 
               bgcolor: 'secondary.main',
               fontSize: isMobile ? '0.875rem' : '1rem',
-              borderRadius: 0
+              // borderRadius: 0
             }}>
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </Avatar>
