@@ -155,8 +155,16 @@ const RealTimeChat: React.FC = () => {
         setMessages([]);
         setConnectionStatus('connecting');
         
-        // 这里的WebSocket URL需要根据实际后端配置调整
-        const wsUrl = `ws://localhost:8000/ws/chat/${matchId}?userId=${currentUserId}`;
+        // 动态构建WebSocket URL，自动适配开发和生产环境
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host; // 自动获取当前域名和端口
+        // 如果host中包含localhost，则强制使用ws://localhost:8000作为WebSocket服务器
+        let wsUrl = '';
+        if (host.includes('localhost')) {
+          wsUrl = `ws://localhost:8000/ws/chat/${matchId}?userId=${currentUserId}`;
+        } else {
+          wsUrl = `${protocol}//${host}/ws/chat/${matchId}?userId=${currentUserId}`;
+        }
         const ws = new WebSocket(wsUrl);
         
         ws.onopen = async () => {
