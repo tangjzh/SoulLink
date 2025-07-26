@@ -227,6 +227,7 @@ export interface MatchRelation {
   total_interactions: number;
   last_conversation_at?: string;
   created_at: string;
+  has_realtime_messages?: boolean;
 }
 
 export interface CreateMarketAgentRequest {
@@ -273,6 +274,19 @@ export const createMatchRelation = async (data: CreateMatchRelationRequest): Pro
 export const getMatchRelations = async (matchType?: string): Promise<MatchRelation[]> => {
   const params = matchType ? { match_type: matchType } : {};
   const response = await api.get('/match-relations', { params });
+  return response.data;
+};
+
+// 获取关注你的用户列表（别人匹配了你但你没有匹配他们）
+export const getFollowers = async (matchType?: string): Promise<MatchRelation[]> => {
+  const params = matchType ? { match_type: matchType } : {};
+  const response = await api.get('/followers', { params });
+  return response.data;
+};
+
+// 取消匹配关系
+export const cancelMatchRelation = async (matchId: string): Promise<{ message: string; match_id: string }> => {
+  const response = await api.delete(`/match-relations/${matchId}`);
   return response.data;
 };
 

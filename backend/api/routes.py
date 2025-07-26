@@ -1140,6 +1140,7 @@ class MatchRelationResponse(BaseModel):
     total_interactions: int
     last_conversation_at: Optional[datetime]
     created_at: datetime
+    has_realtime_messages: Optional[bool] = False  # 是否有实时聊天消息
 
 # 情感匹配相关路由
 
@@ -1326,17 +1327,9 @@ async def get_match_relations(
         
         result = []
         for match in matches:
-            # 确定目标agent（如果当前用户是发起者，目标是target_agent；否则是initiator_agent）
-            if match.initiator_user_id == current_user.id:
-                target_agent = match.target_agent
-            else:
-                target_agent = match.initiator_agent
-            
-            # 确定目标用户ID
-            if match.initiator_user_id == current_user.id:
-                target_user_id = match.target_user_id
-            else:
-                target_user_id = match.initiator_user_id
+            # 现在只返回用户作为发起者的匹配，所以target_agent就是目标agent
+            target_agent = match.target_agent
+            target_user_id = match.target_user_id
             
             result.append(MatchRelationResponse(
                 id=str(match.id),
@@ -1364,6 +1357,94 @@ async def get_match_relations(
             detail=f"获取匹配关系失败：{str(e)}"
         )
 
+@router.get("/followers", response_model=List[MatchRelationResponse])
+async def get_followers(
+    match_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取关注你的用户列表（别人匹配了你但你没有匹配他们）"""
+    try:
+        from models.database import RealTimeMessage
+        
+        followers = match_service.get_followers(
+            db=db,
+            user_id=current_user.id,
+            match_type=match_type
+        )
+        
+        result = []
+        for relation in followers:
+            # 获取发起者的agent信息
+            initiator_agent = relation.initiator_agent
+            
+            # 检查是否有实时聊天消息
+            has_realtime_messages = db.query(RealTimeMessage).filter(
+                RealTimeMessage.match_relation_id == relation.id,
+                RealTimeMessage.is_deleted == False
+            ).first() is not None
+            
+            # 构建响应，这里target_agent实际是initiator_agent（关注者的agent）
+            result.append(MatchRelationResponse(
+                id=str(relation.id),
+                target_agent={
+                    "id": str(initiator_agent.id),
+                    "digital_persona_id": str(initiator_agent.digital_persona_id),
+                    "display_name": initiator_agent.display_name,
+                    "display_description": initiator_agent.display_description,
+                    "tags": json.loads(initiator_agent.tags or "[]")
+                },
+                target_user_id=str(relation.initiator_user_id),
+                match_type=relation.match_type,
+                love_compatibility_score=relation.love_compatibility_score,
+                friendship_compatibility_score=relation.friendship_compatibility_score,
+                total_interactions=relation.total_interactions,
+                last_conversation_at=relation.last_conversation_at,
+                created_at=relation.created_at,
+                has_realtime_messages=has_realtime_messages
+            ))
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取关注者失败：{str(e)}"
+        )
+
+@router.delete("/match-relations/{match_id}")
+async def cancel_match_relation(
+    match_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """取消匹配关系"""
+    try:
+        success = match_service.cancel_match_relation(
+            db=db,
+            match_id=match_id,
+            user_id=current_user.id
+        )
+        
+        if success:
+            return {"message": "匹配关系已取消", "match_id": match_id}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="取消匹配失败"
+            )
+            
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"取消匹配失败：{str(e)}"
+        )
+
 @router.post("/match-relations/{match_id}/trigger-conversation")
 async def trigger_conversation(
     match_id: str,
@@ -1372,11 +1453,10 @@ async def trigger_conversation(
 ):
     """手动触发一轮自动对话（异步执行）"""
     try:
-        # 验证匹配关系存在且用户有权限
+        # 验证匹配关系存在且用户有权限（只有发起者可以触发对话）
         match_relation = db.query(MatchRelation).filter(
             MatchRelation.id == match_id,
-            (MatchRelation.initiator_user_id == current_user.id) | 
-            (MatchRelation.target_user_id == current_user.id),
+            MatchRelation.initiator_user_id == current_user.id,
             MatchRelation.status == "active"
         ).first()
         
@@ -1463,11 +1543,10 @@ async def get_match_conversations(
 ):
     """获取匹配关系的对话历史"""
     try:
-        # 验证匹配关系存在且用户有权限
+        # 验证匹配关系存在且用户有权限（只有发起者可以查看对话历史）
         match_relation = db.query(MatchRelation).filter(
             MatchRelation.id == match_id,
-            (MatchRelation.initiator_user_id == current_user.id) | 
-            (MatchRelation.target_user_id == current_user.id),
+            MatchRelation.initiator_user_id == current_user.id,
             MatchRelation.status == "active"
         ).first()
         

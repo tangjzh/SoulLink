@@ -442,13 +442,12 @@ class MatchService:
     ) -> List[MatchRelation]:
         """
         获取用户的匹配关系列表
+        只显示用户主动发起的匹配，不包括别人添加该用户agent的匹配
         """
         try:
+            # 只查询用户作为发起者的匹配关系
             query = db.query(MatchRelation).filter(
-                or_(
-                    MatchRelation.initiator_user_id == user_id,
-                    MatchRelation.target_user_id == user_id
-                ),
+                MatchRelation.initiator_user_id == user_id,
                 MatchRelation.status == "active"
             )
 
@@ -465,6 +464,113 @@ class MatchService:
         except Exception as e:
             print(f"获取匹配关系失败: {e}")
             return []
+
+    def get_user_agent_matches(
+        self,
+        db: Session,
+        user_id: str,
+        match_type: str = None
+    ) -> List[MatchRelation]:
+        """
+        获取其他用户匹配该用户agent的关系列表
+        用于查看自己的agent被多少人添加到匹配中
+        """
+        try:
+            # 查询用户作为目标的匹配关系（别人匹配了该用户的agent）
+            query = db.query(MatchRelation).filter(
+                MatchRelation.target_user_id == user_id,
+                MatchRelation.status == "active"
+            )
+
+            if match_type:
+                query = query.filter(MatchRelation.match_type == match_type)
+
+            return query.order_by(MatchRelation.created_at.desc()).all()
+        except Exception as e:
+            print(f"获取agent匹配关系失败: {e}")
+            return []
+
+    def get_followers(
+        self,
+        db: Session,
+        user_id: str,
+        match_type: str = None
+    ) -> List[MatchRelation]:
+        """
+        获取"关注你的"关系列表
+        返回别人匹配了该用户的agent，但该用户没有反向匹配对方的关系
+        """
+        try:
+            from sqlalchemy import and_, not_, exists
+            
+            # 查询别人匹配了该用户的agent的关系
+            follower_query = db.query(MatchRelation).filter(
+                MatchRelation.target_user_id == user_id,
+                MatchRelation.status == "active"
+            )
+
+            if match_type:
+                follower_query = follower_query.filter(MatchRelation.match_type == match_type)
+
+            # 获取所有关注者关系
+            follower_relations = follower_query.all()
+            
+            # 过滤掉用户已经反向匹配的关系
+            filtered_relations = []
+            for relation in follower_relations:
+                # 检查当前用户是否已经匹配了对方
+                reverse_match_exists = db.query(MatchRelation).filter(
+                    and_(
+                        MatchRelation.initiator_user_id == user_id,
+                        MatchRelation.target_user_id == relation.initiator_user_id,
+                        MatchRelation.match_type == relation.match_type,
+                        MatchRelation.status == "active"
+                    )
+                ).first()
+                
+                if not reverse_match_exists:
+                    filtered_relations.append(relation)
+            
+            return filtered_relations
+            
+        except Exception as e:
+            print(f"获取关注者关系失败: {e}")
+            return []
+
+    def cancel_match_relation(
+        self,
+        db: Session,
+        match_id: str,
+        user_id: str
+    ) -> bool:
+        """
+        取消匹配关系
+        只有发起者可以取消自己发起的匹配
+        """
+        try:
+            # 查找匹配关系
+            match_relation = db.query(MatchRelation).filter(
+                and_(
+                    MatchRelation.id == match_id,
+                    MatchRelation.initiator_user_id == user_id,
+                    MatchRelation.status == "active"
+                )
+            ).first()
+            
+            if not match_relation:
+                raise ValueError("匹配关系不存在或无权限取消")
+            
+            # 将状态设置为已取消
+            match_relation.status = "cancelled"
+            match_relation.updated_at = datetime.utcnow()
+            
+            db.commit()
+            return True
+            
+        except Exception as e:
+            print(f"取消匹配关系失败: {e}")
+            db.rollback()
+            raise e
 
     def get_pending_conversations(self, db: Session) -> List[MatchRelation]:
         """

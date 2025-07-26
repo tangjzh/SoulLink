@@ -54,7 +54,7 @@ const Home: React.FC = () => {
     },
     {
       icon: <Explore sx={{ fontSize: 32 }} />,
-      title: '探索匹配市场',
+      title: '探索链接空间',
       description: '发现可能的灵魂伴侣',
       color: theme.palette.secondary.main,
       gradient: 'linear-gradient(135deg, #EC4899 0%, #F97316 100%)',
@@ -134,7 +134,7 @@ const Home: React.FC = () => {
                 欢迎回到 SoulLink
               </Typography>
               <Typography variant={isMobile ? "body1" : "h6"} sx={{ opacity: 0.9 }}>
-                你的数字灵魂匹配之旅继续前行
+                你的数字灵魂链接之旅继续前行
               </Typography>
             </Box>
           </Box>

@@ -30,7 +30,10 @@ import {
   Switch,
   FormControlLabel,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Menu,
+  ListItemText,
+  ListItemIcon
 } from '@mui/material';
 import {
   Favorite,
@@ -46,7 +49,9 @@ import {
   Rocket,
   Psychology,
   AutoAwesome,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Delete,
+  MoreVert
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -59,6 +64,8 @@ import {
   getTaskStatus,
   getMatchConversations,
   getDigitalPersonas,
+  getFollowers,
+  cancelMatchRelation,
   MarketAgent,
   MatchRelation,
   DigitalPersona,
@@ -109,6 +116,7 @@ const MatchMarket: React.FC = () => {
   const [marketAgents, setMarketAgents] = useState<MarketAgent[]>([]);
   const [myMarketAgents, setMyMarketAgents] = useState<MarketAgent[]>([]);
   const [matchRelations, setMatchRelations] = useState<MatchRelation[]>([]);
+  const [followers, setFollowers] = useState<MatchRelation[]>([]);
   const [digitalPersonas, setDigitalPersonas] = useState<DigitalPersona[]>([]);
   
   // UI状态
@@ -119,6 +127,10 @@ const MatchMarket: React.FC = () => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   const [runningTasks, setRunningTasks] = useState<string[]>([]);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [matchToCancel, setMatchToCancel] = useState<MatchRelation | null>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<{[key: string]: HTMLElement | null}>({});
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   
   // 市场探索显示的agents
   const [displayedAgents, setDisplayedAgents] = useState<MarketAgent[]>([]);
@@ -168,6 +180,9 @@ const MatchMarket: React.FC = () => {
         // 我的匹配
         promises.push(getMatchRelations(marketType));
       } else if (tabValue === 2) {
+        // 关注你的
+        promises.push(getFollowers(marketType));
+      } else if (tabValue === 3) {
         // 投放管理 - 需要匹配关系数据来显示统计信息
         promises.push(getMyMarketAgents());
         promises.push(getDigitalPersonas());
@@ -193,6 +208,8 @@ const MatchMarket: React.FC = () => {
       } else if (tabValue === 1) {
         setMatchRelations(results[0] as MatchRelation[]);
       } else if (tabValue === 2) {
+        setFollowers(results[0] as MatchRelation[]);
+      } else if (tabValue === 3) {
         setMyMarketAgents(results[0] as MarketAgent[]);
         setDigitalPersonas(results[1] as DigitalPersona[]);
         
@@ -341,6 +358,49 @@ const MatchMarket: React.FC = () => {
     navigate(`/realtime-chat/${relation.id}?name=${encodeURIComponent(relation.target_agent.display_name)}&userId=${relation.target_user_id || ''}`);
   };
 
+  // 打开取消匹配确认对话框
+  const handleOpenCancelDialog = (relation: MatchRelation) => {
+    setMatchToCancel(relation);
+    setCancelDialogOpen(true);
+  };
+
+  // 确认取消匹配
+  const handleConfirmCancelMatch = async () => {
+    if (!matchToCancel) return;
+    
+    try {
+      setLoading(true);
+      await cancelMatchRelation(matchToCancel.id);
+      setCancelDialogOpen(false);
+      setMatchToCancel(null);
+      setError(null);
+      // 刷新数据
+      loadData();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || '取消匹配失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 打开菜单
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, relationId: string) => {
+    setMenuAnchorEl(prev => ({ ...prev, [relationId]: event.currentTarget }));
+    setOpenMenuId(relationId);
+  };
+
+  // 关闭菜单
+  const handleMenuClose = () => {
+    setOpenMenuId(null);
+    setMenuAnchorEl({});
+  };
+
+  // 菜单中的取消匹配
+  const handleMenuCancelMatch = (relation: MatchRelation) => {
+    handleMenuClose();
+    handleOpenCancelDialog(relation);
+  };
+
   const getCompatibilityScore = (relation: MatchRelation) => {
     return marketType === 'love' 
       ? relation.love_compatibility_score 
@@ -393,7 +453,7 @@ const MatchMarket: React.FC = () => {
           sx={{ 
             mb: isMobile ? 2 : 3,
             mx: isMobile ? 2 : 0,
-            borderRadius: 0,
+            // borderRadius: 0,
             fontSize: isMobile ? '0.875rem' : '1rem'
           }} 
           onClose={() => setError(null)}
@@ -473,7 +533,7 @@ const MatchMarket: React.FC = () => {
         >
           <Tab
             icon={<Psychology sx={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }} />}
-            label={isMobile ? "探索" : "市场探索"}
+            label={isMobile ? "探索" : "空间探索"}
             id="match-tab-0"
             aria-controls="match-tabpanel-0"
             // sx={{ borderRadius: 0 }}
@@ -486,10 +546,17 @@ const MatchMarket: React.FC = () => {
             // sx={{ borderRadius: 0 }}
           />
           <Tab
-            icon={<Rocket sx={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }} />}
-            label={isMobile ? "管理" : "投放管理"}
+            icon={<Favorite sx={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }} />}
+            label={isMobile ? "关注" : "关注你的"}
             id="match-tab-2"
             aria-controls="match-tabpanel-2"
+            // sx={{ borderRadius: 0 }}
+          />
+          <Tab
+            icon={<Rocket sx={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }} />}
+            label={isMobile ? "管理" : "投放管理"}
+            id="match-tab-3"
+            aria-controls="match-tabpanel-3"
             // sx={{ borderRadius: 0 }}
           />
         </Tabs>
@@ -646,7 +713,7 @@ const MatchMarket: React.FC = () => {
                 </CardContent>
                 
                 <CardActions sx={{ 
-                  // display: 'flex', 
+                  display: 'flex', 
                   // gap: isMobile ? 0.5 : 1,
                   // flexDirection: isMobile ? 'column' : 'row',
                   // p: isMobile ? 2 : 1
@@ -659,6 +726,7 @@ const MatchMarket: React.FC = () => {
                     fullWidth={isMobile}
                     sx={{ 
                       // flex: isMobile ? 'none' : 1,
+                      flex: 1.5,
                       // borderRadius: 0,
                       fontSize: isMobile ? '0.875rem' : '0.75rem'
                     }}
@@ -676,6 +744,7 @@ const MatchMarket: React.FC = () => {
                       fullWidth={isMobile}
                       sx={{ 
                         // flex: isMobile ? 'none' : 1,
+                        flex: 1.5,
                         // borderRadius: 0,
                         fontSize: isMobile ? '0.875rem' : '0.75rem'
                       }}
@@ -692,7 +761,8 @@ const MatchMarket: React.FC = () => {
                       size={isMobile ? "medium" : "small"}
                       fullWidth={isMobile}
                       sx={{ 
-                        flex: isMobile ? 'none' : 1,
+                        // flex: isMobile ? 'none' : 1,
+                        flex: 1.5,
                         // borderRadius: 0,
                         fontSize: isMobile ? '0.875rem' : '0.75rem'
                       }}
@@ -757,7 +827,7 @@ const MatchMarket: React.FC = () => {
             
             return (
               <Grid item xs={12} sm={6} key={relation.id}>
-                <Card>
+                <Card sx={{ position: 'relative' }}>
                   <CardContent sx={{ p: isMobile ? 2 : 2 }}>
                     <Box sx={{ 
                       display: 'flex', 
@@ -790,16 +860,6 @@ const MatchMarket: React.FC = () => {
                           {relation.target_agent.display_description}
                         </Typography>
                       </Box>
-                      <Chip
-                        label={`${score.toFixed(1)}%`}
-                        color={color}
-                        variant="filled"
-                        sx={{ 
-                          // borderRadius: 0,
-                          fontSize: isMobile ? '0.75rem' : '0.875rem',
-                          alignSelf: isMobile ? 'center' : 'flex-start'
-                        }}
-                      />
                     </Box>
                     
                     <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
@@ -811,7 +871,18 @@ const MatchMarket: React.FC = () => {
                           textAlign: isMobile ? 'center' : 'left'
                         }}
                       >
-                        匹配度进度
+                        匹配度进度 
+                        <Chip
+                        label={`${Math.min(100, score).toFixed(1)}%`}
+                        color={color}
+                        variant="filled"
+                        sx={{ 
+                          // borderRadius: 0,
+                          ml: 1,
+                          fontSize: isMobile ? '0.75rem' : '0.875rem',
+                          alignSelf: isMobile ? 'center' : 'flex-start'
+                        }}
+                      />
                       </Typography>
                       <LinearProgress
                         variant="determinate"
@@ -864,7 +935,7 @@ const MatchMarket: React.FC = () => {
                             size="small" 
                             variant="outlined"
                             sx={{ 
-                              borderRadius: 0,
+                              // borderRadius: 0,
                               fontSize: isMobile ? '0.7rem' : '0.75rem',
                               height: isMobile ? 24 : 28
                             }}
@@ -973,6 +1044,51 @@ const MatchMarket: React.FC = () => {
                       </Button>
                     </Box>
                   </CardActions>
+                  
+                  {/* 右下角菜单按钮 */}
+                  <IconButton
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 1,
+                      backgroundColor: 'background.paper',
+                      boxShadow: 1,
+                      '&:hover': {
+                        backgroundColor: 'background.paper',
+                        boxShadow: 2,
+                      },
+                    }}
+                    size="small"
+                    onClick={(e) => handleMenuClick(e, relation.id)}
+                  >
+                    <MoreVert fontSize="small" />
+                  </IconButton>
+                  
+                  {/* 菜单 */}
+                  <Menu
+                    anchorEl={menuAnchorEl[relation.id]}
+                    open={openMenuId === relation.id}
+                    onClose={handleMenuClose}
+                    anchorOrigin={{
+                      vertical: 'top',
+                      horizontal: 'left',
+                    }}
+                    transformOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                  >
+                    <MenuItem onClick={() => handleMenuCancelMatch(relation)}>
+                      <ListItemIcon>
+                        <Delete fontSize="small" color="error" />
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary="取消匹配" 
+                        sx={{ color: 'error.main' }}
+                      />
+                    </MenuItem>
+                  </Menu>
                 </Card>
               </Grid>
             );
@@ -1001,14 +1117,243 @@ const MatchMarket: React.FC = () => {
               color="text.secondary"
               sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
             >
-              去市场探索页面添加一些伙伴吧！
+              去链接空间页面添加一些伙伴吧！
+            </Typography>
+          </Box>
+        )}
+      </TabPanel>
+
+      {/* 关注你的 */}
+      <TabPanel value={tabValue} index={2}>
+        <Typography 
+          variant={isMobile ? "h6" : "h5"} 
+          gutterBottom
+          sx={{ 
+            textAlign: isMobile ? 'center' : 'left',
+            fontSize: isMobile ? '1.25rem' : '1.5rem',
+            mb: isMobile ? 2 : 1
+          }}
+        >
+          关注你的{marketType === 'love' ? '恋爱' : '友谊'}伙伴
+        </Typography>
+
+        {loading && <LinearProgress sx={{ mb: isMobile ? 1 : 2 }} />}
+
+        <Grid container spacing={isMobile ? 2 : 3}>
+          {followers.map((relation) => {
+            const score = getCompatibilityScore(relation);
+            const color = getCompatibilityColor(score);
+            
+            return (
+              <Grid item xs={12} sm={6} md={4} key={relation.id}>
+                <Card sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  // borderRadius: 0,
+                  '&:hover': isMobile ? {} : {
+                    boxShadow: 6,
+                    transform: 'translateY(-2px)',
+                    transition: 'all 0.3s ease'
+                  }
+                }}>
+                  <CardContent sx={{ flexGrow: 1, p: isMobile ? 2 : 2 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      mb: isMobile ? 1.5 : 2,
+                      flexDirection: isMobile ? 'column' : 'row',
+                      textAlign: isMobile ? 'center' : 'left',
+                      gap: isMobile ? 1 : 0
+                    }}>
+                      <Avatar sx={{ 
+                        bgcolor: marketType === 'love' ? 'error.main' : 'primary.main', 
+                        mr: isMobile ? 0 : 2,
+                        width: isMobile ? 48 : 40,
+                        height: isMobile ? 48 : 40,
+                        fontSize: isMobile ? '1.25rem' : '1rem',
+                        // borderRadius: 0
+                      }}>
+                        {relation.target_agent.display_name.charAt(0)}
+                      </Avatar>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant={isMobile ? "subtitle1" : "h6"} 
+                          component="div"
+                          sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }}
+                        >
+                          {relation.target_agent.display_name}
+                          {relation.has_realtime_messages && (
+                            <Chip 
+                              label="💌 私信了你" 
+                              size="small"
+                              variant="outlined"
+                              color="error" 
+                              sx={{ 
+                                ml: 1,
+                                mb: 0.5,
+                                fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                height: isMobile ? 20 : 24
+                              }} 
+                            />
+                          )}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                        >
+                          匹配度: <Chip 
+                            label={`${score.toFixed(1)}%`} 
+                            color={color} 
+                            size="small"
+                            sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}
+                          />
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: isMobile ? 1.5 : 2,
+                        fontSize: isMobile ? '0.875rem' : '0.875rem',
+                        lineHeight: 1.4,
+                        textAlign: isMobile ? 'center' : 'left'
+                      }}
+                    >
+                      {relation.target_agent.display_description}
+                    </Typography>
+                    
+                    {relation.target_agent.tags.length > 0 && (
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        gap: isMobile ? 0.5 : 0.5,
+                        justifyContent: isMobile ? 'center' : 'flex-start'
+                      }}>
+                        {relation.target_agent.tags.slice(0, 3).map((tag: string, index: number) => (
+                          <Chip 
+                            key={index} 
+                            label={tag} 
+                            size={isMobile ? "small" : "small"} 
+                            variant="outlined"
+                            sx={{ 
+                              // borderRadius: 0,
+                              fontSize: isMobile ? '0.75rem' : '0.75rem',
+                              height: isMobile ? 24 : 28
+                            }}
+                          />
+                        ))}
+                        {relation.target_agent.tags.length > 3 && (
+                          <Chip 
+                            label={`+${relation.target_agent.tags.length - 3}`} 
+                            size={isMobile ? "small" : "small"} 
+                            variant="outlined"
+                            sx={{ 
+                              // borderRadius: 0,
+                              fontSize: isMobile ? '0.75rem' : '0.75rem',
+                              height: isMobile ? 24 : 28
+                            }}
+                          />
+                        )}
+                      </Box>
+                    )}
+                  </CardContent>
+                  
+                  <CardActions sx={{ 
+                    display: 'flex', 
+                    gap: isMobile ? 0.5 : 1,
+                    flexDirection: isMobile ? 'column' : 'row',
+                    p: isMobile ? 2 : 1
+                  }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Chat sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }} />}
+                      onClick={() => navigate(`/market-chat/${relation.target_agent.digital_persona_id}?name=${encodeURIComponent(relation.target_agent.display_name)}&description=${encodeURIComponent(relation.target_agent.display_description)}`)}
+                      size={isMobile ? "medium" : "small"}
+                      fullWidth={isMobile}
+                      sx={{ 
+                        flex: isMobile ? 'none' : 1,
+                        // borderRadius: 0,
+                        fontSize: isMobile ? '0.875rem' : '0.75rem'
+                      }}
+                    >
+                      开始聊天
+                    </Button>
+                    
+                    {isAgentAlreadyMatched(relation.target_agent.id) ? (
+                      <Button
+                        variant="outlined"
+                        disabled
+                        startIcon={<PersonAdd sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }} />}
+                        color="inherit"
+                        size={isMobile ? "medium" : "small"}
+                        fullWidth={isMobile}
+                        sx={{ 
+                          flex: isMobile ? 'none' : 1,
+                          // borderRadius: 0,
+                          fontSize: isMobile ? '0.875rem' : '0.75rem'
+                        }}
+                      >
+                        已添加
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        startIcon={<PersonAdd sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }} />}
+                        onClick={() => handleAddToMatches(relation.target_agent.id)}
+                        disabled={loading}
+                        color={marketType === 'love' ? 'error' : 'primary'}
+                        size={isMobile ? "medium" : "small"}
+                        fullWidth={isMobile}
+                        sx={{ 
+                          flex: isMobile ? 'none' : 1,
+                          // borderRadius: 0,
+                          fontSize: isMobile ? '0.875rem' : '0.75rem'
+                        }}
+                      >
+                        添加匹配
+                      </Button>
+                    )}
+                  </CardActions>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {followers.length === 0 && !loading && (
+          <Box textAlign="center" sx={{ py: isMobile ? 6 : 4, px: isMobile ? 2 : 0 }}>
+            <Favorite sx={{ 
+              fontSize: isMobile ? 60 : 80, 
+              color: 'text.secondary', 
+              mb: 2 
+            }} />
+            <Typography 
+              variant={isMobile ? "subtitle1" : "h6"} 
+              color="text.secondary"
+              sx={{ 
+                mb: 1,
+                fontSize: isMobile ? '1rem' : '1.25rem'
+              }}
+            >
+              暂无人关注你的{marketType === 'love' ? '恋爱' : '友谊'}伙伴
+            </Typography>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+            >
+              继续完善你的数字人格，吸引更多人的关注！
             </Typography>
           </Box>
         )}
       </TabPanel>
 
       {/* 投放管理 */}
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={3}>
         <Box sx={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row',
@@ -1024,7 +1369,7 @@ const MatchMarket: React.FC = () => {
               fontSize: isMobile ? '1.25rem' : '1.5rem'
             }}
           >
-            我的时空投放
+            我的{marketType === 'love' ? '恋爱' : '友谊'}空间投放
           </Typography>
           <Button
             variant="contained"
@@ -1095,7 +1440,7 @@ const MatchMarket: React.FC = () => {
                           flexWrap: 'wrap'
                         }}>
                           <Chip
-                            label={agent.market_type === 'love' ? '恋爱市场' : '友谊市场'}
+                            label={agent.market_type === 'love' ? '恋爱空间' : '友谊空间'}
                             color={agent.market_type === 'love' ? 'error' : 'primary'}
                             variant="filled"
                             icon={agent.market_type === 'love' ? <Favorite /> : <People />}
@@ -1411,7 +1756,7 @@ const MatchMarket: React.FC = () => {
                   lineHeight: 1.6
                 }}
               >
-                投放你的数字人格到匹配市场，让更多人发现你！
+                投放你的数字人格到链接空间，让更多人发现你！
               </Typography>
               <Button
                 variant="contained"
@@ -1447,7 +1792,7 @@ const MatchMarket: React.FC = () => {
           fontSize: isMobile ? '1.25rem' : '1.5rem',
           textAlign: isMobile ? 'center' : 'left'
         }}>
-          投放数字人格到市场
+          投放数字人格到空间
         </DialogTitle>
         <DialogContent sx={{ px: isMobile ? 2 : 3 }}>
           <Box sx={{ pt: isMobile ? 2 : 1 }}>
@@ -1486,11 +1831,11 @@ const MatchMarket: React.FC = () => {
               size={isMobile ? "medium" : "medium"}
             >
               <InputLabel sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}>
-                市场类型
+                空间类型
               </InputLabel>
               <Select
                 value={createForm.market_type}
-                label="市场类型"
+                label="空间类型"
                 onChange={(e) => setCreateForm(prev => ({ ...prev, market_type: e.target.value as 'love' | 'friendship' }))}
                 sx={{ 
                   // borderRadius: 0,
@@ -1501,13 +1846,13 @@ const MatchMarket: React.FC = () => {
                   value="love"
                   sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
                 >
-                  恋爱市场
+                  恋爱空间
                 </MenuItem>
                 <MenuItem 
                   value="friendship"
                   sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
                 >
-                  友谊市场
+                  友谊空间
                 </MenuItem>
               </Select>
             </FormControl>
@@ -1819,6 +2164,78 @@ const MatchMarket: React.FC = () => {
             }}
           >
             关闭
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 取消匹配确认对话框 */}
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+      >
+        <DialogTitle sx={{ 
+          pb: isMobile ? 1 : 2,
+          fontSize: isMobile ? '1.25rem' : '1.5rem',
+          textAlign: isMobile ? 'center' : 'left'
+        }}>
+          确认取消匹配
+        </DialogTitle>
+        <DialogContent sx={{ px: isMobile ? 2 : 3 }}>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              mb: isMobile ? 2 : 2,
+              fontSize: isMobile ? '0.875rem' : '1rem',
+              textAlign: isMobile ? 'center' : 'left',
+              lineHeight: 1.6
+            }}
+          >
+            您确定要取消与 <strong>{matchToCancel?.target_agent.display_name}</strong> 的匹配关系吗？
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              fontSize: isMobile ? '0.875rem' : '0.875rem',
+              textAlign: isMobile ? 'center' : 'left',
+              lineHeight: 1.5
+            }}
+          >
+            取消后，您将无法再看到与该用户的自动对话记录，但实时聊天记录将会保留。您可以随时重新添加匹配。
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ 
+          p: isMobile ? 2 : 1,
+          gap: isMobile ? 1 : 0,
+          flexDirection: isMobile ? 'column-reverse' : 'row'
+        }}>
+          <Button 
+            onClick={() => setCancelDialogOpen(false)}
+            fullWidth={isMobile}
+            size={isMobile ? "large" : "medium"}
+            sx={{ 
+              // borderRadius: 0,
+              fontSize: isMobile ? '1rem' : '0.875rem'
+            }}
+          >
+            取消
+          </Button>
+          <Button
+            onClick={handleConfirmCancelMatch}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            fullWidth={isMobile}
+            size={isMobile ? "large" : "medium"}
+            sx={{ 
+              // borderRadius: 0,
+              fontSize: isMobile ? '1rem' : '0.875rem'
+            }}
+          >
+            确认取消匹配
           </Button>
         </DialogActions>
       </Dialog>

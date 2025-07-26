@@ -133,7 +133,7 @@ const Navbar: React.FC = () => {
                 </IconButton>
               </Tooltip>
               
-              <Tooltip title="链接时空" slotProps={{ tooltip: { sx: { borderRadius: 0 } } }}>
+              <Tooltip title="链接空间" slotProps={{ tooltip: { sx: { borderRadius: 0 } } }}>
                 <IconButton
                   color="inherit"
                   component={Link}
@@ -209,7 +209,7 @@ const Navbar: React.FC = () => {
                   }
                 }}
               >
-                链接时空
+                链接空间
               </Button>
             </>
           )}
