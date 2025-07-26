@@ -1,278 +1,360 @@
-# 🌐 SoulLink - 数字灵魂匹配系统
+# SoulLink - 数字灵魂匹配系统
 
-> 一款由 AI 撮合的数字灵魂匹配系统，让你在虚拟空间中找到真正契合的灵魂
+![SoulLink Logo](https://via.placeholder.com/600x200/4A90E2/ffffff?text=SoulLink)
 
-## 📖 项目简介
+一个基于AI驱动的数字灵魂匹配系统，帮助用户创建数字人格，通过智能算法进行匹配，并支持实时聊天交流。
 
-SoulLink 是一个创新的AI驱动平台，允许用户创建和训练自己的数字人格。通过与数字分身在各种场景中对话，系统会根据用户反馈自动优化人格特征，实现类似TextGrad的提示词优化效果。
+## 🌟 项目特性
 
-### 🎯 核心功能
+### 核心功能
+- 🤖 **AI驱动的数字人格创建** - 基于用户输入智能生成个性化数字人格
+- 💝 **智能匹配算法** - 使用AI分析用户兼容性，提供精准匹配
+- 💬 **实时聊天系统** - WebSocket实时通讯，支持打字状态显示
+- 📊 **个性评估系统** - 综合人格测试和AI分析
+- 🎭 **多场景对话** - 支持不同情境下的对话体验
+- 📱 **响应式设计** - 现代化的Material-UI界面，支持移动端
 
-- **🧠 数字人格构建**: 通过AI技术创建专属数字分身
-- **💬 场景化对话**: 在多种预设场景中与数字人格互动
-- **👍 智能反馈系统**: 支持点赞/点踩和文字矫正反馈
-- **🔄 自动优化**: 基于反馈自动优化System Prompt
-- **📊 进度追踪**: 可视化优化历史和匹配度评分
+### 技术亮点
+- 🔮 **OpenAI集成** - 使用最新的GPT模型进行智能对话
+- 🌐 **现代Web技术栈** - React + TypeScript + FastAPI
+- 🔒 **安全认证系统** - JWT token认证，保护用户数据
+- 📈 **可扩展架构** - 微服务设计，支持水平扩展
+- 🐳 **容器化部署** - Docker支持，简化部署流程
 
-## 🏗️ 系统架构
+## 🏗️ 技术栈
+
+### 后端
+- **框架**: FastAPI (Python)
+- **数据库**: PostgreSQL / SQLite
+- **ORM**: SQLAlchemy
+- **缓存**: Redis
+- **AI服务**: OpenAI GPT, LangChain
+- **实时通讯**: WebSocket
+- **认证**: JWT (python-jose)
+- **密码加密**: Passlib + bcrypt
+
+### 前端
+- **框架**: React 18 + TypeScript
+- **UI库**: Material-UI (MUI)
+- **路由**: React Router DOM
+- **HTTP客户端**: Axios
+- **状态管理**: React Context
+- **构建工具**: Create React App
+
+### 部署与开发
+- **容器化**: Docker & Docker Compose
+- **代码质量**: ESLint, TypeScript
+- **API文档**: FastAPI自动生成Swagger文档
+
+## 📦 项目结构
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (React + TypeScript)            │
-├─────────────────────────────────────────────────────────────┤
-│                    Backend API (FastAPI)                   │
-├─────────────────────────────────────────────────────────────┤
-│                    AI Service (OpenAI LLM)                 │
-├─────────────────────────────────────────────────────────────┤
-│                    Database (PostgreSQL)                   │
-└─────────────────────────────────────────────────────────────┘
+SoulLink/
+├── backend/                 # 后端服务
+│   ├── api/                # API路由
+│   │   └── routes.py       # 主要API端点
+│   ├── models/             # 数据模型
+│   │   └── database.py     # SQLAlchemy模型定义
+│   ├── services/           # 业务服务层
+│   │   ├── ai_service.py   # AI服务 (OpenAI/LangChain)
+│   │   ├── auth_service.py # 认证服务
+│   │   ├── chat_service.py # 聊天服务
+│   │   ├── match_service.py# 匹配算法服务
+│   │   └── websocket_service.py # WebSocket服务
+│   ├── main.py             # FastAPI应用入口
+│   ├── init_db.py          # 数据库初始化脚本
+│   ├── requirements.txt    # Python依赖
+│   └── Dockerfile          # 后端Docker配置
+│
+├── frontend/               # 前端应用
+│   ├── src/
+│   │   ├── components/     # 可复用组件
+│   │   ├── pages/          # 页面组件
+│   │   │   ├── Landing.tsx # 首页
+│   │   │   ├── Login.tsx   # 登录页
+│   │   │   ├── PersonaCreate.tsx # 数字人格创建
+│   │   │   ├── MatchMarket.tsx   # 匹配市场
+│   │   │   ├── RealTimeChat.tsx  # 实时聊天
+│   │   │   └── PersonalityAssessment.tsx # 个性评估
+│   │   ├── services/       # API服务
+│   │   ├── contexts/       # React Context
+│   │   └── config/         # 配置文件
+│   ├── package.json        # 前端依赖
+│   └── Dockerfile          # 前端Docker配置
+│
+└── README.md              # 项目文档
 ```
 
 ## 🚀 快速开始
 
-### 📋 前置要求
+### 环境要求
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL (可选，默认使用SQLite)
+- Redis (可选，用于缓存)
 
-- **Python 3.8+**
-- **Node.js 16+**
-- **PostgreSQL 12+** (可选，也支持SQLite)
-- **OpenAI API Key**
-
-### 💻 安装步骤
-
-#### 1️⃣ 克隆项目
-
+### 1. 克隆项目
 ```bash
 git clone <repository-url>
 cd SoulLink
 ```
 
-#### 2️⃣ 后端设置
+### 2. 后端设置
 
+#### 创建虚拟环境
 ```bash
-# 进入后端目录
 cd backend
-
-# 创建Python虚拟环境
-python3 -m venv venv
+python -m venv venv
 source venv/bin/activate  # Linux/Mac
-# 或在Windows上: venv\Scripts\activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 创建环境配置文件
-cp .env.example .env
-# 编辑 .env 文件，设置你的配置
+# 或 venv\Scripts\activate  # Windows
 ```
 
-#### 3️⃣ 配置环境变量
-
-编辑 `backend/.env` 文件：
-
-```env
-# AI服务配置（必须）
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4-turbo-preview
-
-# 数据库配置（可选，默认使用SQLite）
-DATABASE_URL=postgresql://username:password@localhost:5432/soullink
-
-# 其他配置
-SECRET_KEY=your_secret_key_here
-DEBUG=true
-```
-
-#### 4️⃣ 启动后端服务
-
+#### 安装依赖
 ```bash
-# 在 backend 目录下
+pip install -r requirements.txt
+```
+
+#### 环境配置
+创建 `.env` 文件：
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件，配置必要参数：
+```env
+# OpenAI配置 (必需)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# 数据库配置 (可选，默认使用SQLite)
+DATABASE_URL=sqlite:///soullink.db
+# 或使用PostgreSQL: DATABASE_URL=postgresql://user:password@localhost/soullink
+
+# Redis配置 (可选)
+REDIS_URL=redis://localhost:6379
+
+# 应用配置
+DEBUG=true
+HOST=0.0.0.0
+PORT=8000
+FRONTEND_URL=http://localhost:3000
+```
+
+#### 初始化数据库
+```bash
+python init_db.py
+```
+
+#### 启动后端服务
+```bash
 python main.py
 ```
 
 后端服务将在 `http://localhost:8000` 启动
+- API文档: http://localhost:8000/docs
+- 健康检查: http://localhost:8000/health
 
-#### 5️⃣ 前端设置
+### 3. 前端设置
 
+#### 安装依赖
 ```bash
-# 新开一个终端，进入前端目录
 cd frontend
-
-# 安装依赖
 npm install
+```
 
-# 启动开发服务器
+#### 启动前端服务
+```bash
 npm start
 ```
 
 前端应用将在 `http://localhost:3000` 启动
 
-## 📱 使用指南
+### 4. 使用Docker (推荐)
 
-### 🔧 创建数字人格
-
-1. 访问首页，点击"开始你的数字灵魂之旅"
-2. 填写基本信息：姓名、年龄、性格特征等
-3. AI会自动生成初始的System Prompt
-4. 数字人格创建完成！
-
-### 💬 开始对话
-
-1. 在数字人格列表中选择一个人格
-2. 选择对话场景（咖啡厅见面、深夜谈心等）
-3. 开始与你的数字分身对话
-4. 通过反馈不断优化人格表现
-
-### 📊 反馈系统
-
-对AI的回复，你可以：
-- **👍 点赞**: 表示满意
-- **👎 点踩**: 表示不满意  
-- **✏️ 矫正**: 提供具体的改进建议
-
-系统会根据反馈自动优化System Prompt，让数字人格更符合你的期望。
-
-## 🛠️ 技术栈
-
-### 后端技术
-- **FastAPI**: 现代化的Python Web框架
-- **SQLAlchemy**: ORM数据库操作
-- **OpenAI API**: 大语言模型接口
-- **PostgreSQL**: 主数据库
-- **Redis**: 缓存层
-
-### 前端技术  
-- **React 18**: 用户界面库
-- **TypeScript**: 类型安全的JavaScript
-- **Material-UI**: 现代化UI组件库
-- **Axios**: HTTP客户端
-
-### AI技术
-- **大语言模型**: GPT-4等先进模型
-- **Prompt Engineering**: 提示词工程
-- **TextGrad-like优化**: 基于反馈的自动优化
-
-## 📁 项目结构
-
-```
-SoulLink/
-├── doc/                          # 项目文档
-│   ├── README.md                 # 文档总览
-│   ├── PRD.md                    # 产品需求文档
-│   ├── functional_design.md      # 功能设计文档
-│   └── technical_architecture.md # 技术架构文档
-├── backend/                      # 后端代码
-│   ├── main.py                   # FastAPI应用入口
-│   ├── models/                   # 数据模型
-│   ├── services/                 # 业务逻辑
-│   ├── api/                      # API路由
-│   └── requirements.txt          # Python依赖
-├── frontend/                     # 前端代码
-│   ├── src/
-│   │   ├── components/           # React组件
-│   │   ├── pages/                # 页面组件
-│   │   ├── services/             # API服务
-│   │   └── App.tsx               # 主应用
-│   └── package.json              # Node.js依赖
-└── README.md                     # 项目说明
+#### 构建和启动所有服务
+```bash
+# 在项目根目录
+docker-compose up --build
 ```
 
-## 🔧 API文档
+这将启动：
+- 后端API服务 (端口8000)
+- 前端Web应用 (端口3000)
+- PostgreSQL数据库 (如果配置)
+- Redis缓存 (如果配置)
 
-启动后端服务后，访问 `http://localhost:8000/docs` 查看自动生成的API文档。
+## 📚 API文档
 
-### 主要端点
+### 主要API端点
 
-- `POST /api/v1/digital-personas` - 创建数字人格
-- `GET /api/v1/scenarios` - 获取对话场景
-- `POST /api/v1/conversations` - 创建对话
+#### 用户认证
+- `POST /api/v1/register` - 用户注册
+- `POST /api/v1/login` - 用户登录
+- `GET /api/v1/profile` - 获取用户资料
+
+#### 数字人格管理
+- `POST /api/v1/personas` - 创建数字人格
+- `GET /api/v1/personas` - 获取用户的数字人格列表
+- `PUT /api/v1/personas/{id}` - 更新数字人格
+- `DELETE /api/v1/personas/{id}` - 删除数字人格
+
+#### 匹配系统
+- `GET /api/v1/matches` - 获取匹配结果
+- `POST /api/v1/matches/calculate` - 计算匹配度
+- `GET /api/v1/market` - 获取匹配市场数据
+
+#### 聊天系统
+- `GET /api/v1/conversations` - 获取对话列表
+- `POST /api/v1/conversations` - 创建新对话
+- `GET /api/v1/conversations/{id}/messages` - 获取对话消息
 - `POST /api/v1/messages` - 发送消息
-- `POST /api/v1/feedback` - 提交反馈
 
-## 🧪 示例使用
+#### WebSocket端点
+- `ws://localhost:8000/ws/chat/{other_user_id}?userId={user_id}` - 实时聊天
 
-### 创建数字人格
+完整API文档请访问：http://localhost:8000/docs
 
-```python
-# 示例：创建一个开朗外向的数字人格
-persona_data = {
-    "name": "阳光小助手",
-    "description": "一个开朗乐观的数字分身",
-    "basic_info": {
-        "age_range": "25-30",
-        "personality": "外向开朗，乐于助人",
-        "values": "积极向上，重视友谊"
-    }
-}
+## 💡 使用指南
+
+### 1. 注册和登录
+1. 访问 http://localhost:3000
+2. 点击"开始体验"进入注册页面
+3. 填写用户名、邮箱和密码完成注册
+4. 使用注册信息登录系统
+
+### 2. 创建数字人格
+1. 登录后点击"创建人格"
+2. 填写人格名称和描述
+3. 完成个性评估问卷
+4. 系统将基于AI生成您的数字人格
+
+### 3. 查看匹配
+1. 进入"匹配市场"页面
+2. 查看系统推荐的匹配用户
+3. 查看匹配度分析和兼容性报告
+
+### 4. 开始聊天
+1. 在匹配市场中选择感兴趣的用户
+2. 点击"开始聊天"
+3. 支持实时消息和打字状态显示
+
+## 🔧 开发指南
+
+### 后端开发
+```bash
+# 安装开发依赖
+pip install -r requirements-dev.txt
+
+# 运行测试
+pytest
+
+# 代码格式化
+black .
+isort .
+
+# 类型检查
+mypy .
 ```
 
-### 对话示例
+### 前端开发
+```bash
+# 代码检查
+npm run lint
 
+# 运行测试
+npm test
+
+# 构建生产版本
+npm run build
 ```
-场景：咖啡厅初次见面
 
-用户: "你好，很高兴认识你！"
-AI: "你好！我也很高兴认识你，这家咖啡厅的氛围真不错呢。你经常来这里吗？"
+### 数据库迁移
+```bash
+# 生成迁移文件
+alembic revision --autogenerate -m "描述"
 
-[用户可以点赞👍、点踩👎或提供矫正反馈✏️]
+# 执行迁移
+alembic upgrade head
 ```
 
-## 🎨 界面预览
+## 🌍 部署指南
 
-### 首页
-- 项目介绍和核心功能展示
-- 工作原理说明
-- 快速开始入口
+### 生产环境部署
 
-### 数字人格创建
-- 分步骤的表单界面
-- 实时预览
-- 智能建议
+#### 使用Docker Compose
+```bash
+# 设置生产环境变量
+export NODE_ENV=production
+export DEBUG=false
 
-### 对话界面
-- 场景选择对话框
-- 实时消息流
-- 反馈按钮
-- 矫正对话框
+# 启动生产服务
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-### 人格管理
-- 人格列表卡片
-- 优化进度显示
-- 统计概览
+#### 环境变量配置
+生产环境需要设置以下环境变量：
+```env
+OPENAI_API_KEY=your_production_api_key
+DATABASE_URL=postgresql://user:password@db:5432/soullink
+REDIS_URL=redis://redis:6379
+SECRET_KEY=your_secret_key
+DEBUG=false
+```
+
+## 🔒 安全考虑
+
+- 🔐 **数据加密**: 用户密码使用bcrypt加密存储
+- 🎫 **JWT认证**: 安全的token认证机制
+- 🛡️ **CORS配置**: 正确配置跨域请求
+- 🔍 **输入验证**: 严格的数据验证和清理
+- 📝 **日志记录**: 完整的操作日志记录
 
 ## 🤝 贡献指南
 
-欢迎贡献代码和建议！
+我们欢迎各种形式的贡献！
 
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+### 提交Issue
+- 🐛 Bug报告
+- 💡 功能建议
+- 📖 文档改进
+
+### 代码贡献
+1. Fork项目
+2. 创建功能分支: `git checkout -b feature/amazing-feature`
+3. 提交更改: `git commit -m 'Add amazing feature'`
+4. 推送分支: `git push origin feature/amazing-feature`
+5. 创建Pull Request
+
+### 开发规范
+- 遵循现有代码风格
+- 添加适当的测试
+- 更新相关文档
+- 确保所有测试通过
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 [MIT License](LICENSE) 许可证。
 
-## 🙋‍♂️ 常见问题
+## 👥 团队
 
-### Q: 如何获取OpenAI API Key？
-A: 访问 [OpenAI官网](https://platform.openai.com/api-keys) 注册并创建API密钥。
+- **项目维护者**: [@tangjinzhou](https://github.com/tangjinzhou)
 
-### Q: 支持其他语言模型吗？
-A: 目前主要支持OpenAI模型，未来会添加更多模型支持。
+## 📞 支持与反馈
 
-### Q: 数据是否安全？
-A: 所有对话数据都存储在本地数据库中，不会上传到第三方服务器。
+如果你在使用过程中遇到问题或有任何建议，欢迎通过以下方式联系我们：
 
-### Q: 可以部署到生产环境吗？
-A: 可以，但需要配置生产级数据库、安全设置和负载均衡。
+- 🐛 [提交Issue](https://github.com/your-repo/SoulLink/issues)
+- 💬 [讨论区](https://github.com/your-repo/SoulLink/discussions)
+- 📧 邮箱: support@soullink.app
 
-## 📞 联系我们
+## 🙏 致谢
 
-- 📧 邮箱: team@soullink.ai
-- 🐛 问题反馈: [GitHub Issues](issues)
-- 💬 讨论: [GitHub Discussions](discussions)
+感谢以下开源项目和技术：
+- [FastAPI](https://fastapi.tiangolo.com/) - 现代Python API框架
+- [React](https://reactjs.org/) - 用户界面库
+- [Material-UI](https://mui.com/) - React UI组件库
+- [OpenAI](https://openai.com/) - AI服务提供商
+- [LangChain](https://python.langchain.com/) - AI应用开发框架
 
 ---
 
-**让数字灵魂在虚拟空间中绽放！** ✨ 
+⭐ 如果这个项目对你有帮助，请给我们一个Star！ 

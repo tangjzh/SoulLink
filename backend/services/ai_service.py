@@ -32,7 +32,7 @@ class AIService:
     async def _call_dify_api(
         self,
         prompt: str,
-        self_awareness: str,
+        self_awareness: str = "",
         conversation_id: Optional[str] = None,
         user_id: str = "default_user"
     ) -> Tuple[str, Dict[str, Any]]:
