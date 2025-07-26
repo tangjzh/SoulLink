@@ -1,6 +1,7 @@
 import openai
 import os
 import json
+import httpx
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import re
@@ -13,8 +14,123 @@ openai.base_url = os.getenv("OPENAI_BASE_URL")
 
 class AIService:
     def __init__(self):
+        # AI服务提供商选择 (openai 或 dify)
+        self.ai_provider = os.getenv("AI_PROVIDER", "openai").lower()
+        
+        # OpenAI配置
         self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
         self.client = openai.OpenAI()
+        
+        # Dify配置
+        self.dify_api_key = os.getenv("DIFY_API_KEY")
+        self.dify_base_url = os.getenv("DIFY_BASE_URL", "https://api.dify.ai/v1")
+        self.dify_app_id = os.getenv("DIFY_APP_ID")
+        
+        # HTTP客户端用于Dify API调用
+        self.http_client = httpx.AsyncClient()
+    
+    async def _call_dify_api(
+        self,
+        prompt: str,
+        self_awareness: str,
+        conversation_id: Optional[str] = None,
+        user_id: str = "default_user"
+    ) -> Tuple[str, Dict[str, Any]]:
+        """
+        调用Dify API
+        
+        Args:
+            prompt: 完整的提示内容
+            conversation_id: 对话ID（可选）
+            user_id: 用户ID
+            
+        Returns:
+            Tuple[response_content, metadata]
+        """
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.dify_api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "inputs": {
+                    "self_awareness": self_awareness
+                },
+                "query": prompt,
+                "user": user_id,
+                "response_mode": "blocking"
+            }
+            
+            # 如果有conversation_id，添加到请求中
+            if conversation_id:
+                data["conversation_id"] = conversation_id
+            
+            response = await self.http_client.post(
+                f"{self.dify_base_url}/chat-messages",
+                headers=headers,
+                json=data,
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Dify API error: {response.status_code} - {response.text}")
+            
+            result = response.json()
+            
+            metadata = {
+                "provider": "dify",
+                "conversation_id": result.get("conversation_id"),
+                "message_id": result.get("id"),
+                "timestamp": datetime.utcnow().isoformat(),
+                "dify_metadata": result.get("metadata", {})
+            }
+            
+            return result.get("answer", "抱歉，我现在无法回复。"), metadata
+            
+        except Exception as e:
+            print(f"Error calling Dify API: {e}")
+            return "抱歉，我现在无法回复。", {"error": str(e), "provider": "dify"}
+    
+    async def _call_openai_api(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.8,
+        max_tokens: int = 512
+    ) -> Tuple[str, Dict[str, Any]]:
+        """
+        调用OpenAI API
+        
+        Args:
+            messages: 消息列表
+            temperature: 温度参数
+            max_tokens: 最大token数
+            
+        Returns:
+            Tuple[response_content, metadata]
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            agent_response = response.choices[0].message.content
+            
+            metadata = {
+                "provider": "openai",
+                "model_used": self.model,
+                "tokens_used": response.usage.total_tokens,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            return agent_response, metadata
+            
+        except Exception as e:
+            print(f"Error calling OpenAI API: {e}")
+            return "抱歉，我现在无法回复。", {"error": str(e), "provider": "openai"}
         
     async def generate_agent_response(
         self, 
@@ -60,33 +176,60 @@ class AIService:
 **必须遵守**：除非必要或用户明确要求，保持回复长度在10个字左右，保持口语表达，就像真人在敲键盘打字。
 """
             
-            # 构建消息历史
-            messages = [{"role": "system", "content": full_system_prompt}]
-            
-            # 添加对话历史
-            for msg in conversation_history:
-                role = "user" if msg["sender_type"] == "user" else "assistant"
-                messages.append({"role": role, "content": msg["content"]})
-            
-            # 添加当前用户消息
-            messages.append({"role": "user", "content": user_message})
-            
-            # 调用LLM
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=0.8,
-                max_tokens=512
-            )
-            
-            agent_response = response.choices[0].message.content
-            
-            metadata = {
-                "model_used": self.model,
-                "tokens_used": response.usage.total_tokens,
-                "prompt_used": full_system_prompt,
-                "timestamp": datetime.utcnow().isoformat()
-            }
+            # 根据AI服务提供商选择调用方式
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                # 对于Dify，我们需要将对话历史和用户消息组合成一个完整的prompt
+                conversation_text = ""
+                for msg in conversation_history:
+                    sender = "用户" if msg["sender_type"] == "user" else "助手"
+                    conversation_text += f"{sender}：{msg['content']}\n"
+                
+                # 构建完整的prompt
+                complete_prompt = f"""
+对话历史：
+{conversation_text}
+
+用户：{user_message}
+
+请以数字人格身份回复："""
+                
+                agent_response, metadata = await self._call_dify_api(
+                    self_awareness=full_system_prompt,
+                    prompt=complete_prompt,
+                    user_id="soullink_user"
+                )
+                
+                # 添加额外的元数据
+                metadata.update({
+                    "prompt_used": full_system_prompt,
+                    "conversation_length": len(conversation_history)
+                })
+                
+            else:
+                # 使用OpenAI API
+                # 构建消息历史
+                messages = [{"role": "system", "content": full_system_prompt}]
+                
+                # 添加对话历史
+                for msg in conversation_history:
+                    role = "user" if msg["sender_type"] == "user" else "assistant"
+                    messages.append({"role": role, "content": msg["content"]})
+                
+                # 添加当前用户消息
+                messages.append({"role": "user", "content": user_message})
+                
+                agent_response, metadata = await self._call_openai_api(
+                    messages=messages,
+                    temperature=0.8,
+                    max_tokens=512
+                )
+                
+                # 添加额外的元数据
+                metadata.update({
+                    "prompt_used": full_system_prompt,
+                    "conversation_length": len(conversation_history)
+                })
             
             return agent_response, metadata
             
@@ -146,13 +289,21 @@ class AIService:
 }}
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": optimization_prompt}],
-                temperature=0.3
-            )
-            
-            result = json.loads(response.choices[0].message.content)
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                agent_response, _ = await self._call_dify_api(
+                    prompt=optimization_prompt,
+                    user_id="system_optimizer"
+                )
+                result = json.loads(agent_response)
+            else:
+                # 使用OpenAI API
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": optimization_prompt}],
+                    temperature=0.3
+                )
+                result = json.loads(response.choices[0].message.content)
             
             return (
                 result["new_prompt"],
@@ -239,13 +390,21 @@ class AIService:
 请直接返回system prompt内容，不需要额外说明。
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt_generation_request}],
-                temperature=0.7
-            )
-            
-            return response.choices[0].message.content.strip()
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                agent_response, _ = await self._call_dify_api(
+                    prompt=prompt_generation_request,
+                    user_id="prompt_generator"
+                )
+                return agent_response.strip()
+            else:
+                # 使用OpenAI API
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt_generation_request}],
+                    temperature=0.7
+                )
+                return response.choices[0].message.content.strip()
             
         except Exception as e:
             print(f"Error generating initial prompt: {e}")
@@ -349,13 +508,21 @@ class AIService:
 }}
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": question_prompt}],
-                temperature=0.8
-            )
-            
-            result = json.loads(response.choices[0].message.content)
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                agent_response, _ = await self._call_dify_api(
+                    prompt=question_prompt,
+                    user_id="question_generator"
+                )
+                result = json.loads(agent_response)
+            else:
+                # 使用OpenAI API
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": question_prompt}],
+                    temperature=0.8
+                )
+                result = json.loads(response.choices[0].message.content)
             return result
             
         except Exception as e:
@@ -400,13 +567,21 @@ class AIService:
 如果需要继续，返回：{"continue": true, "reason": "需要继续的原因"}
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": judgment_prompt}],
-                temperature=0.3
-            )
-            
-            result = json.loads(response.choices[0].message.content)
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                agent_response, _ = await self._call_dify_api(
+                    prompt=judgment_prompt,
+                    user_id="assessment_judge"
+                )
+                result = json.loads(agent_response)
+            else:
+                # 使用OpenAI API
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": judgment_prompt}],
+                    temperature=0.3
+                )
+                result = json.loads(response.choices[0].message.content)
             return result.get("continue", True)
             
         except Exception as e:
@@ -458,13 +633,21 @@ class AIService:
 请返回优化后的system prompt，不要添加额外的解释，只输出system prompt：
 """
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": optimization_prompt}],
-                temperature=0.6
-            )
-            
-            new_prompt = response.choices[0].message.content.strip()
+            if self.ai_provider == "dify":
+                # 使用Dify API
+                agent_response, _ = await self._call_dify_api(
+                    prompt=optimization_prompt,
+                    user_id="answer_processor"
+                )
+                new_prompt = agent_response.strip()
+            else:
+                # 使用OpenAI API
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": optimization_prompt}],
+                    temperature=0.6
+                )
+                new_prompt = response.choices[0].message.content.strip()
             
             # 更新数据库中的system prompt
             persona.system_prompt = new_prompt
@@ -484,6 +667,11 @@ class AIService:
                 "optimization_applied": False,
                 "message": f"处理答案时出错：{str(e)}"
             }
+    
+    async def cleanup(self):
+        """清理资源"""
+        if hasattr(self, 'http_client'):
+            await self.http_client.aclose()
 
 class ScenarioService:
     """场景服务"""
@@ -538,4 +726,24 @@ class ScenarioService:
 
 # 全局AI服务实例
 ai_service = AIService()
-scenario_service = ScenarioService() 
+scenario_service = ScenarioService()
+
+"""
+环境变量配置说明：
+
+选择AI服务提供商：
+AI_PROVIDER=openai  # 使用OpenAI (默认)
+AI_PROVIDER=dify    # 使用Dify
+
+OpenAI配置：
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_BASE_URL=https://api.openai.com/v1  # 可选，默认官方API
+OPENAI_MODEL=gpt-4-turbo-preview  # 可选，默认模型
+
+Dify配置：
+DIFY_API_KEY=your_dify_api_key
+DIFY_BASE_URL=https://api.dify.ai/v1  # 可选，默认官方API
+DIFY_APP_ID=your_dify_app_id  # 可选，某些Dify版本可能需要
+
+在.env文件中设置这些环境变量即可切换AI服务提供商。
+""" 
