@@ -355,7 +355,7 @@ const MatchMarket: React.FC = () => {
 
   // 与真人聊天
   const handleChatWithUser = (relation: MatchRelation) => {
-    navigate(`/realtime-chat/${relation.id}?name=${encodeURIComponent(relation.target_agent.display_name)}&userId=${relation.target_user_id || ''}`);
+    navigate(`/realtime-chat/${relation.target_user_id}?name=${encodeURIComponent(relation.target_agent.display_name)}`);
   };
 
   // 打开取消匹配确认对话框
@@ -424,28 +424,30 @@ const MatchMarket: React.FC = () => {
 
   return (
     <Box>
-      <Typography 
-        variant={isMobile ? "h4" : "h3"} 
-        component="h1" 
-        gutterBottom 
-        textAlign="center"
-        sx={{ fontSize: isMobile ? '1.75rem' : '3rem' }}
-      >
-        💕 链接时空
-      </Typography>
-      
-      <Typography 
-        variant={isMobile ? "body1" : "h6"} 
-        color="text.secondary" 
-        textAlign="center" 
-        sx={{ 
-          mb: isMobile ? 3 : 4,
-          fontSize: isMobile ? '1rem' : '1.25rem',
-          px: isMobile ? 2 : 0
-        }}
-      >
-        你的数字分身在此处遇见那个虚拟的TA
-      </Typography>
+      <Box>
+        <Typography 
+          variant={isMobile ? "h4" : "h3"} 
+          component="h1" 
+          gutterBottom 
+          textAlign="center"
+          sx={{ fontSize: isMobile ? '1.75rem' : '3rem' }}
+        >
+          💕 链接空间
+        </Typography>
+        
+        <Typography 
+          variant={isMobile ? "body1" : "h6"} 
+          color="text.secondary" 
+          textAlign="center" 
+          sx={{ 
+            mb: isMobile ? 3 : 4,
+            fontSize: isMobile ? '1rem' : '1.25rem',
+            px: isMobile ? 2 : 0
+          }}
+        >
+          你的数字分身在此处遇见那个虚拟的TA
+        </Typography>
+      </Box>
 
       {error && (
         <Alert 
@@ -463,12 +465,14 @@ const MatchMarket: React.FC = () => {
       )}
 
       {/* 市场类型切换 */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        mb: isMobile ? 2 : 3,
-        px: isMobile ? 2 : 0
-      }}>
+      <Box 
+        id="tutorial-match-intro" 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mb: isMobile ? 2 : 3,
+          px: isMobile ? 2 : 0
+        }}>
         <FormControl>
           <FormControlLabel
             control={
@@ -506,7 +510,7 @@ const MatchMarket: React.FC = () => {
       </Box>
 
       {/* 标签页 */}
-      <Box sx={{ 
+      <Box id="tutorial-match-tabs" sx={{ 
         borderBottom: 1, 
         borderColor: 'divider', 
         mb: isMobile ? 1 : 2,
@@ -564,7 +568,7 @@ const MatchMarket: React.FC = () => {
 
       {/* 市场探索 */}
       <TabPanel value={tabValue} index={0}>
-        <Box sx={{ 
+        <Box id="tutorial-match-explore" sx={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between', 
@@ -807,6 +811,7 @@ const MatchMarket: React.FC = () => {
       {/* 我的匹配 */}
       <TabPanel value={tabValue} index={1}>
         <Typography 
+          id="tutorial-match-mine"
           variant={isMobile ? "h6" : "h5"} 
           gutterBottom
           sx={{ 
@@ -1126,6 +1131,7 @@ const MatchMarket: React.FC = () => {
       {/* 关注你的 */}
       <TabPanel value={tabValue} index={2}>
         <Typography 
+          id="tutorial-match-followers"
           variant={isMobile ? "h6" : "h5"} 
           gutterBottom
           sx={{ 
@@ -1354,7 +1360,7 @@ const MatchMarket: React.FC = () => {
 
       {/* 投放管理 */}
       <TabPanel value={tabValue} index={3}>
-        <Box sx={{ 
+        <Box id="tutorial-match-launch" sx={{ 
           display: 'flex', 
           flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between', 

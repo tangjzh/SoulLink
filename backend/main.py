@@ -33,16 +33,16 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1", tags=["main"])
 
 # WebSocket端点
-@app.websocket("/ws/chat/{match_id}")
+@app.websocket("/ws/chat/{other_user_id}")
 async def websocket_endpoint(
     websocket: WebSocket, 
-    match_id: str, 
+    other_user_id: str, 
     userId: str, 
     db: Session = Depends(get_db)
 ):
-    """WebSocket聊天端点"""
+    """WebSocket聊天端点 - 基于用户对的实时聊天"""
     from services.websocket_service import websocket_service
-    await websocket_service.handle_websocket_connection(websocket, match_id, userId, db)
+    await websocket_service.handle_websocket_connection(websocket, other_user_id, userId, db)
 
 def check_environment():
     """检查环境配置"""
@@ -127,7 +127,7 @@ async def startup_event():
     print("🚀 SoulLink API 启动完成！")
     print("📚 API文档: http://localhost:8000/docs")
     print("🔧 健康检查: http://localhost:8000/health")
-    print("💬 WebSocket聊天: ws://localhost:8000/ws/chat/{match_id}?userId={user_id}")
+    print("💬 WebSocket聊天: ws://localhost:8000/ws/chat/{other_user_id}?userId={user_id}")
 
 @app.on_event("shutdown")
 async def shutdown_event():

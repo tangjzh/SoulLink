@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import {
   Psychology,
   Person,
@@ -25,11 +26,13 @@ import {
   Favorite,
   AccountCircle,
   Logout,
+  School,
 } from '@mui/icons-material';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { startManualTutorial } = useTutorial();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -48,8 +51,14 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
+  const handleStartTutorial = () => {
+    startManualTutorial();
+    handleUserMenuClose();
+    navigate('/home'); // 导航到首页开始教程
+  };
+
   return (
-    <AppBar position="static" elevation={0} sx={{ 
+    <AppBar id="tutorial-navbar" position="static" elevation={0} sx={{ 
       background: 'linear-gradient(45deg, #6366F1 30%, #EC4899 90%)',
       borderRadius: 0
     }}>
@@ -261,6 +270,10 @@ const Navbar: React.FC = () => {
               </Box>
             </MenuItem>
             <Divider />
+            <MenuItem onClick={handleStartTutorial}>
+              <School fontSize="small" sx={{ mr: 1 }} />
+              <Typography variant={isMobile ? "body2" : "body1"}>新手教程</Typography>
+            </MenuItem>
             <MenuItem onClick={handleLogout}>
               <Logout fontSize="small" sx={{ mr: 1 }} />
               <Typography variant={isMobile ? "body2" : "body1"}>退出登录</Typography>

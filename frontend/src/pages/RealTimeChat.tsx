@@ -27,7 +27,14 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getRealTimeMessages, RealTimeMessage } from '../services/api';
+import { 
+  getRealTimeMessages, 
+  RealTimeMessage,
+  createOrGetChatSession,
+  getChatMessages,
+  ChatSession,
+  ChatMessage as APIChatMessage
+} from '../services/api';
 
 interface ChatMessage {
   id: string;
@@ -39,17 +46,18 @@ interface ChatMessage {
 }
 
 const RealTimeChat: React.FC = () => {
-  const { matchId } = useParams<{ matchId: string }>();
+  const { otherUserId } = useParams<{ otherUserId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   
   // 从URL参数获取聊天信息
-  const chatPartnerName = searchParams.get('name') || '匹配用户';
-  const partnerId = searchParams.get('userId') || '';
+  const chatPartnerName = searchParams.get('name') || '用户';
+  const partnerId = otherUserId || '';
   
   // 状态管理
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,13 +71,18 @@ const RealTimeChat: React.FC = () => {
   const currentUserId = user?.id || '';
   const currentUserName = user?.username || '我';
 
-  // 加载历史消息
-  const loadHistoryMessages = async () => {
-    if (!matchId) return;
+  // 初始化聊天会话
+  const initializeChatSession = async () => {
+    if (!otherUserId) return;
     
     try {
-      const historyMessages = await getRealTimeMessages(matchId, 50, 0);
-      const chatMessages: ChatMessage[] = historyMessages.map((msg: RealTimeMessage) => ({
+      // 获取或创建聊天会话
+      const session = await createOrGetChatSession(otherUserId);
+      setChatSession(session);
+      
+      // 加载历史消息
+      const historyMessages = await getChatMessages(session.id, 50, 0);
+      const chatMessages: ChatMessage[] = historyMessages.map((msg: APIChatMessage) => ({
         id: msg.id,
         senderId: msg.sender_user_id,
         senderName: msg.sender_name,
@@ -80,9 +93,11 @@ const RealTimeChat: React.FC = () => {
       
       setMessages(chatMessages);
       console.log(`加载了 ${chatMessages.length} 条历史消息`);
+      return session;
     } catch (err: any) {
-      console.error('加载历史消息失败:', err);
-      setError('加载历史消息失败：' + err.message);
+      console.error('初始化聊天会话失败:', err);
+      setError('初始化聊天会话失败：' + err.message);
+      return null;
     }
   };
 
@@ -109,7 +124,11 @@ const RealTimeChat: React.FC = () => {
         break;
         
       case 'user_status':
-        setIsPartnerOnline(data.isOnline);
+        // 确保状态更新来自对方用户，而不是自己
+        if (data.userId && data.userId !== currentUserId) {
+          setIsPartnerOnline(data.isOnline);
+          console.log(`对方用户 ${data.userId} 状态更新为: ${data.isOnline ? '在线' : '离线'}`);
+        }
         break;
         
       case 'typing':
@@ -142,38 +161,42 @@ const RealTimeChat: React.FC = () => {
 
   // 初始化WebSocket连接
   useEffect(() => {
-    if (!matchId || !currentUserId) return;
+    if (!otherUserId || !currentUserId) return;
 
     // 防止重复连接（React StrictMode会导致useEffect被调用两次）
     if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
       return;
     }
 
-    const connectWebSocket = () => {
+    const connectWebSocket = async () => {
       try {
         // 清空之前的消息，准备加载历史消息
         setMessages([]);
         setConnectionStatus('connecting');
         
+        // 首先初始化聊天会话
+        const session = await initializeChatSession();
+        if (!session) {
+          setError('无法初始化聊天会话');
+          return;
+        }
+        
         // 动态构建WebSocket URL，自动适配开发和生产环境
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host; // 自动获取当前域名和端口
-        // 如果host中包含localhost，则强制使用ws://localhost:8000作为WebSocket服务器
+        // 使用otherUserId而不是matchId来建立连接
         let wsUrl = '';
         if (host.includes('localhost')) {
-          wsUrl = `ws://localhost:8000/ws/chat/${matchId}?userId=${currentUserId}`;
+          wsUrl = `ws://localhost:8000/ws/chat/${otherUserId}?userId=${currentUserId}`;
         } else {
-          wsUrl = `${protocol}//${host}/ws/chat/${matchId}?userId=${currentUserId}`;
+          wsUrl = `${protocol}//${host}/ws/chat/${otherUserId}?userId=${currentUserId}`;
         }
         const ws = new WebSocket(wsUrl);
         
-        ws.onopen = async () => {
+        ws.onopen = () => {
           console.log('WebSocket连接已建立');
           setConnectionStatus('connected');
           setError('');
-          
-          // 连接成功后立即加载历史消息
-          await loadHistoryMessages();
         };
         
         ws.onmessage = (event) => {
@@ -214,18 +237,18 @@ const RealTimeChat: React.FC = () => {
         wsRef.current = null;
       }
     };
-  }, [matchId, currentUserId]);
+  }, [otherUserId, currentUserId]);
 
   // 发送消息
   const handleSendMessage = () => {
-    if (!inputMessage.trim() || !wsRef.current || connectionStatus !== 'connected') return;
+    if (!inputMessage.trim() || !wsRef.current || connectionStatus !== 'connected' || !chatSession) return;
 
     const messageData = {
       type: 'message',
       content: inputMessage.trim(),
       senderId: currentUserId,
       senderName: currentUserName,
-      matchId: matchId,
+      sessionId: chatSession.id,
       timestamp: new Date().toISOString(),
     };
 
@@ -240,13 +263,13 @@ const RealTimeChat: React.FC = () => {
 
   // 发送正在输入状态
   const handleTyping = (isTyping: boolean) => {
-    if (!wsRef.current || connectionStatus !== 'connected') return;
+    if (!wsRef.current || connectionStatus !== 'connected' || !chatSession) return;
 
     const typingData = {
       type: 'typing',
       isTyping: isTyping,
       userId: currentUserId,
-      matchId: matchId,
+      sessionId: chatSession.id,
     };
 
     try {
@@ -492,13 +515,13 @@ const RealTimeChat: React.FC = () => {
 
       {/* 介绍卡片 */}
       {messages.length === 0 && connectionStatus === 'connected' && (
-        <Card sx={{ mt: 2, bgcolor: 'info.light' }}>
+                  <Card sx={{ mt: 2, bgcolor: 'info.light' }}>
           <CardContent sx={{ py: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ color: 'info.contrastText', mb: 2 }}>
               💬 关于实时聊天
             </Typography>
             <Typography variant="body1" sx={{ color: 'info.contrastText', lineHeight: 1.8 }}>
-              • 这是与匹配用户的真人实时聊天功能<br/>
+              • 这是与其他用户的真人实时聊天功能<br/>
               • 消息会即时发送和接收，支持在线状态显示<br/>
               • 可以看到对方是否在线以及正在输入的状态<br/>
               • 聊天记录会保存，下次可以继续查看历史消息<br/>

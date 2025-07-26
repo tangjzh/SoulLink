@@ -16,6 +16,7 @@ from models.database import (
 )
 from services.ai_service import ai_service, scenario_service
 from services.match_service import match_service
+from services.chat_service import chat_service
 from services.auth_service import auth_service
 from services.task_service import task_service
 from pydantic import BaseModel
@@ -1658,4 +1659,248 @@ async def get_realtime_messages(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"获取实时聊天消息失败：{str(e)}"
+        )
+
+# 新的基于ChatSession的聊天API
+
+class ChatSessionResponse(BaseModel):
+    id: str
+    user1_id: str
+    user2_id: str
+    status: str
+    message_count: int
+    last_message_at: Optional[datetime]
+    created_at: datetime
+    
+class ChatMessageResponse(BaseModel):
+    id: str
+    sender_user_id: str
+    sender_name: str
+    content: str
+    message_type: str
+    sequence_number: int
+    is_read: bool
+    created_at: datetime
+
+class ChatMessageCreate(BaseModel):
+    other_user_id: str
+    content: str
+    message_type: str = "text"
+
+@router.get("/chat-sessions", response_model=List[ChatSessionResponse])
+async def get_user_chat_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取用户的所有聊天会话"""
+    try:
+        sessions = chat_service.get_user_chat_sessions(
+            db=db,
+            user_id=current_user.id,
+            status="active"
+        )
+        
+        return [
+            ChatSessionResponse(
+                id=str(session.id),
+                user1_id=str(session.user1_id),
+                user2_id=str(session.user2_id),
+                status=session.status,
+                message_count=session.message_count,
+                last_message_at=session.last_message_at,
+                created_at=session.created_at
+            )
+            for session in sessions
+        ]
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取聊天会话列表失败：{str(e)}"
+        )
+
+@router.post("/chat-sessions", response_model=ChatSessionResponse)
+async def create_or_get_chat_session(
+    other_user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """创建或获取与指定用户的聊天会话"""
+    try:
+        # 验证对方用户是否存在
+        other_user = db.query(User).filter(User.id == other_user_id).first()
+        if not other_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="目标用户不存在"
+            )
+        
+        # 不能与自己聊天
+        if other_user_id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="不能与自己聊天"
+            )
+        
+        session = chat_service.get_or_create_chat_session(
+            db=db,
+            user_id1=current_user.id,
+            user_id2=other_user_id
+        )
+        
+        return ChatSessionResponse(
+            id=str(session.id),
+            user1_id=str(session.user1_id),
+            user2_id=str(session.user2_id),
+            status=session.status,
+            message_count=session.message_count,
+            last_message_at=session.last_message_at,
+            created_at=session.created_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"创建聊天会话失败：{str(e)}"
+        )
+
+@router.get("/chat-sessions/{session_id}/messages", response_model=List[ChatMessageResponse])
+async def get_chat_messages(
+    session_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取聊天会话的消息列表"""
+    try:
+        # 验证用户是否有权限访问此会话
+        session = chat_service.get_chat_session_by_id(db, session_id)
+        if not session or not session.is_participant(current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权限访问此聊天会话"
+            )
+        
+        messages = chat_service.get_messages(
+            db=db,
+            session_id=session_id,
+            limit=limit,
+            offset=offset
+        )
+        
+        result = []
+        for msg in messages:
+            sender_user = db.query(User).filter(User.id == msg.sender_user_id).first()
+            result.append(ChatMessageResponse(
+                id=str(msg.id),
+                sender_user_id=str(msg.sender_user_id),
+                sender_name=sender_user.username if sender_user else "未知用户",
+                content=msg.content,
+                message_type=msg.message_type,
+                sequence_number=msg.sequence_number,
+                is_read=msg.is_read,
+                created_at=msg.created_at
+            ))
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取聊天消息失败：{str(e)}"
+        )
+
+@router.post("/chat-sessions/{session_id}/messages", response_model=ChatMessageResponse)
+async def send_chat_message(
+    session_id: str,
+    message_data: ChatMessageCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """发送聊天消息"""
+    try:
+        # 验证用户是否有权限访问此会话
+        session = chat_service.get_chat_session_by_id(db, session_id)
+        if not session or not session.is_participant(current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权限访问此聊天会话"
+            )
+        
+        message = chat_service.send_message(
+            db=db,
+            session_id=session_id,
+            sender_user_id=current_user.id,
+            content=message_data.content,
+            message_type=message_data.message_type
+        )
+        
+        if not message:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="发送消息失败"
+            )
+        
+        return ChatMessageResponse(
+            id=str(message.id),
+            sender_user_id=str(message.sender_user_id),
+            sender_name=current_user.username,
+            content=message.content,
+            message_type=message.message_type,
+            sequence_number=message.sequence_number,
+            is_read=message.is_read,
+            created_at=message.created_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"发送消息失败：{str(e)}"
+        )
+
+@router.put("/chat-sessions/{session_id}/messages/mark-read")
+async def mark_messages_as_read(
+    session_id: str,
+    up_to_sequence: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """标记消息为已读"""
+    try:
+        # 验证用户是否有权限访问此会话
+        session = chat_service.get_chat_session_by_id(db, session_id)
+        if not session or not session.is_participant(current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权限访问此聊天会话"
+            )
+        
+        success = chat_service.mark_messages_as_read(
+            db=db,
+            session_id=session_id,
+            user_id=current_user.id,
+            up_to_sequence=up_to_sequence
+        )
+        
+        if success:
+            return {"message": "消息已标记为已读"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="标记消息失败"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"标记消息失败：{str(e)}"
         )

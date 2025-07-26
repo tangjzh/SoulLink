@@ -15,30 +15,34 @@ import MatchMarket from './pages/MatchMarket';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import { TutorialProvider } from './contexts/TutorialContext';
+import TutorialManager from './components/TutorialManager';
 
 function App() {
   return (
     <AuthProvider>
-      <div className="App">
-        <Routes>
-          {/* 根路径：始终显示Landing页面 */}
-          <Route path="/" element={<Landing />} />
-          
-          {/* 登录页面 */}
-          <Route path="/login" element={<Login />} />
-          
-          {/* 用户主页 */}
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <Navbar />
-                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                  <Home />
-                </Container>
-              </ProtectedRoute>
-            }
-          />
+      <TutorialProvider>
+        <div className="App">
+          <Routes>
+            {/* 根路径：始终显示Landing页面 */}
+            <Route path="/" element={<Landing />} />
+            
+            {/* 登录页面 */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* 用户主页 */}
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                    <Home />
+                  </Container>
+                  <TutorialManager />
+                </ProtectedRoute>
+              }
+            />
           
           {/* 受保护的功能页面 */}
           <Route
@@ -49,6 +53,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <PersonaList />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -60,6 +65,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <PersonaCreate />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -71,6 +77,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <PersonalityAssessment />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -82,6 +89,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <Chat />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -93,6 +101,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <Chat />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -104,17 +113,19 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <MarketChat />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/realtime-chat/:matchId"
+                          path="/realtime-chat/:otherUserId"
             element={
               <ProtectedRoute>
                 <Navbar />
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <RealTimeChat />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -126,6 +137,7 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <ConversationHistory />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
@@ -137,11 +149,13 @@ function App() {
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                   <MatchMarket />
                 </Container>
+                <TutorialManager />
               </ProtectedRoute>
             }
           />
         </Routes>
-      </div>
+        </div>
+      </TutorialProvider>
     </AuthProvider>
   );
 }

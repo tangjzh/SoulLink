@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean, Float, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean, Float, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -204,12 +204,105 @@ class MatchRelation(Base):
     target_agent = relationship("MarketAgent", foreign_keys=[target_agent_id], back_populates="received_matches")
     auto_conversations = relationship("AutoConversation", back_populates="match_relation")
 
+class ChatSession(Base):
+    """聊天会话 - 维护两个用户之间的实时聊天会话"""
+    __tablename__ = "chat_sessions"
+    
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user1_id = Column(String, ForeignKey("users.id"), nullable=False)  # 用户1（按字典序较小的ID）
+    user2_id = Column(String, ForeignKey("users.id"), nullable=False)  # 用户2（按字典序较大的ID）
+    
+    # 会话状态
+    status = Column(String(20), default="active")  # active, archived, blocked
+    last_message_at = Column(DateTime)  # 最后消息时间
+    message_count = Column(Integer, default=0)  # 消息总数
+    
+    # 用户在线状态（用于WebSocket连接管理）
+    user1_online = Column(Boolean, default=False)
+    user2_online = Column(Boolean, default=False)
+    user1_last_seen = Column(DateTime)
+    user2_last_seen = Column(DateTime)
+    
+    # 创建和更新时间
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 可选：关联的匹配关系（如果通过匹配开始聊天）
+    related_match_relation_id = Column(String, ForeignKey("match_relations.id"), nullable=True)
+    
+    # 表约束：确保用户对唯一，且user1_id < user2_id
+    __table_args__ = (
+        UniqueConstraint('user1_id', 'user2_id', name='unique_user_pair'),
+        Index('idx_chat_session_users', 'user1_id', 'user2_id'),
+        Index('idx_chat_session_status', 'status'),
+        Index('idx_chat_session_last_message', 'last_message_at'),
+    )
+    
+    # Relationships
+    user1 = relationship("User", foreign_keys=[user1_id])
+    user2 = relationship("User", foreign_keys=[user2_id])
+    related_match_relation = relationship("MatchRelation")
+    messages = relationship("RealTimeMessage", back_populates="chat_session", order_by="RealTimeMessage.sequence_number")
+    
+    @staticmethod
+    def get_ordered_user_ids(user_id1: str, user_id2: str) -> tuple[str, str]:
+        """
+        返回按字典序排序的用户ID对，确保user1_id < user2_id
+        """
+        if user_id1 < user_id2:
+            return user_id1, user_id2
+        else:
+            return user_id2, user_id1
+    
+    @classmethod
+    def get_session_id(cls, user_id1: str, user_id2: str) -> str:
+        """
+        根据两个用户ID生成唯一的会话标识符
+        """
+        ordered_ids = cls.get_ordered_user_ids(user_id1, user_id2)
+        return f"chat_{ordered_ids[0]}_{ordered_ids[1]}"
+    
+    def is_participant(self, user_id: str) -> bool:
+        """
+        检查用户是否是此会话的参与者
+        """
+        return user_id in [self.user1_id, self.user2_id]
+    
+    def get_other_user_id(self, user_id: str) -> str:
+        """
+        获取会话中另一个用户的ID
+        """
+        if user_id == self.user1_id:
+            return self.user2_id
+        elif user_id == self.user2_id:
+            return self.user1_id
+        else:
+            raise ValueError(f"User {user_id} is not a participant in this chat session")
+    
+    def update_user_online_status(self, user_id: str, is_online: bool):
+        """
+        更新用户在线状态
+        """
+        now = datetime.utcnow()
+        if user_id == self.user1_id:
+            self.user1_online = is_online
+            if not is_online:
+                self.user1_last_seen = now
+        elif user_id == self.user2_id:
+            self.user2_online = is_online
+            if not is_online:
+                self.user2_last_seen = now
+        else:
+            raise ValueError(f"User {user_id} is not a participant in this chat session")
+        
+        self.updated_at = now
+
 class RealTimeMessage(Base):
     """实时聊天消息"""
     __tablename__ = "realtime_messages"
     
     id = Column(String, primary_key=True, default=generate_uuid)
-    match_relation_id = Column(String, ForeignKey("match_relations.id"), nullable=False)
+    chat_session_id = Column(String, ForeignKey("chat_sessions.id"), nullable=False)
     sender_user_id = Column(String, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     message_type = Column(String(20), default="text")  # text, system, image, etc.
@@ -222,8 +315,21 @@ class RealTimeMessage(Base):
     # 消息序号（用于排序和分页）
     sequence_number = Column(Integer, nullable=False)
     
+    # 消息状态跟踪
+    is_read = Column(Boolean, default=False)  # 是否已读
+    read_at = Column(DateTime)  # 读取时间
+    
+    # 表约束和索引
+    __table_args__ = (
+        Index('idx_realtime_message_session_seq', 'chat_session_id', 'sequence_number'),
+        Index('idx_realtime_message_session_time', 'chat_session_id', 'created_at'),
+        Index('idx_realtime_message_sender', 'sender_user_id'),
+        Index('idx_realtime_message_read_status', 'is_read'),
+        UniqueConstraint('chat_session_id', 'sequence_number', name='unique_message_sequence'),
+    )
+    
     # Relationships
-    match_relation = relationship("MatchRelation")
+    chat_session = relationship("ChatSession", back_populates="messages")
     sender_user = relationship("User")
 
 class AutoConversation(Base):
@@ -318,6 +424,30 @@ def init_database():
     
     # 可以在这里添加初始数据
     print("🎯 数据库初始化完成")
+
+# 导出所有模型，便于其他模块导入
+__all__ = [
+    'User',
+    'DigitalPersona', 
+    'Scenario',
+    'Conversation',
+    'ConversationMessage',
+    'MessageFeedback',
+    'PromptOptimization',
+    'MarketAgent',
+    'MatchRelation',
+    'ChatSession',  # 新增的聊天会话模型
+    'RealTimeMessage',
+    'AutoConversation',
+    'AutoConversationMessage',
+    'MatchEvaluation',
+    'Base',
+    'engine',
+    'SessionLocal',
+    'get_db',
+    'create_tables',
+    'init_database'
+]
 
 if __name__ == "__main__":
     init_database() 

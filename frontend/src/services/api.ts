@@ -419,4 +419,79 @@ export const getRealTimeMessages = async (
   return response.data;
 };
 
+// 新的基于ChatSession的聊天API接口
+
+export interface ChatSession {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  status: string;
+  message_count: number;
+  last_message_at?: string;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender_user_id: string;
+  sender_name: string;
+  content: string;
+  message_type: string;
+  sequence_number: number;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface SendChatMessageRequest {
+  other_user_id: string;
+  content: string;
+  message_type?: string;
+}
+
+// 获取用户的所有聊天会话
+export const getChatSessions = async (): Promise<ChatSession[]> => {
+  const response = await api.get('/chat-sessions');
+  return response.data;
+};
+
+// 创建或获取与指定用户的聊天会话
+export const createOrGetChatSession = async (otherUserId: string): Promise<ChatSession> => {
+  const response = await api.post('/chat-sessions', null, {
+    params: { other_user_id: otherUserId }
+  });
+  return response.data;
+};
+
+// 获取聊天会话的消息列表
+export const getChatMessages = async (
+  sessionId: string,
+  limit: number = 50,
+  offset: number = 0
+): Promise<ChatMessage[]> => {
+  const response = await api.get(`/chat-sessions/${sessionId}/messages`, {
+    params: { limit, offset }
+  });
+  return response.data;
+};
+
+// 发送聊天消息
+export const sendChatMessage = async (
+  sessionId: string,
+  data: SendChatMessageRequest
+): Promise<ChatMessage> => {
+  const response = await api.post(`/chat-sessions/${sessionId}/messages`, data);
+  return response.data;
+};
+
+// 标记消息为已读
+export const markMessagesAsRead = async (
+  sessionId: string,
+  upToSequence?: number
+): Promise<{ message: string }> => {
+  const response = await api.put(`/chat-sessions/${sessionId}/messages/mark-read`, null, {
+    params: upToSequence ? { up_to_sequence: upToSequence } : {}
+  });
+  return response.data;
+};
+
 export default api; 

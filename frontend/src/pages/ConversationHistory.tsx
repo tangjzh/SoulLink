@@ -262,7 +262,7 @@ const ConversationHistory: React.FC = () => {
       )}
 
       {/* 搜索和筛选工具栏 */}
-      <Card sx={{ mb: isMobile ? 2 : 3 }}>
+      <Card id="tutorial-conversations-search" sx={{ mb: isMobile ? 2 : 3 }}>
         <CardContent sx={{ p: isMobile ? 2 : 3 }}>
           <Grid container spacing={isMobile ? 2 : 2} alignItems="center">
             <Grid item xs={12}>
@@ -374,11 +374,13 @@ const ConversationHistory: React.FC = () => {
 
       {/* 对话列表 */}
       {!conversationsData || conversationsData.conversations.length === 0 ? (
-        <Box sx={{ 
-          textAlign: 'center', 
-          py: isMobile ? 4 : 8,
-          px: isMobile ? 2 : 0
-        }}>
+        <Box
+          id="tutorial-conversations-list"
+          sx={{ 
+            textAlign: 'center', 
+            py: isMobile ? 4 : 8,
+            px: isMobile ? 2 : 0
+          }}>
           <Psychology sx={{ 
             fontSize: isMobile ? 60 : 80, 
             color: 'text.secondary', 
@@ -422,7 +424,7 @@ const ConversationHistory: React.FC = () => {
           )}
         </Box>
       ) : (
-        <Grid container spacing={isMobile ? 2 : 3}>
+        <Grid id="tutorial-conversations-list" container spacing={isMobile ? 2 : 3}>
           {conversationsData.conversations.map((conversation) => (
             <Grid item xs={12} key={conversation.id}>
               <Card

@@ -41,6 +41,9 @@ const Landing: React.FC = () => {
 
   // 主要CTA按钮的点击处理
   const handleMainCTA = () => {
+    // 设置标记，表示用户从Landing页面进入
+    sessionStorage.setItem('from_landing', 'true');
+    
     if (isAuthenticated) {
       navigate('/home');
     } else {
@@ -50,6 +53,9 @@ const Landing: React.FC = () => {
 
   // 功能卡片的点击处理
   const handleFeatureClick = () => {
+    // 设置标记，表示用户从Landing页面进入
+    sessionStorage.setItem('from_landing', 'true');
+    
     if (isAuthenticated) {
       navigate('/home');
     } else {
@@ -676,7 +682,10 @@ const Landing: React.FC = () => {
                 <Button
                   variant="contained"
                   size="large"
-                  onClick={() => navigate('/login?tab=1')}
+                  onClick={() => {
+                    sessionStorage.setItem('from_landing', 'true');
+                    navigate('/login?tab=1');
+                  }}
                   startIcon={<PersonAdd />}
                   sx={{
                     background: 'linear-gradient(45deg, #8b5cf6 30%, #ec4899 90%)',
@@ -699,7 +708,10 @@ const Landing: React.FC = () => {
                 <Button
                   variant="outlined"
                   size="large"
-                  onClick={() => navigate('/login?tab=0')}
+                  onClick={() => {
+                    sessionStorage.setItem('from_landing', 'true');
+                    navigate('/login?tab=0');
+                  }}
                   startIcon={<LoginIcon />}
                   sx={{
                     color: 'white',
@@ -725,7 +737,10 @@ const Landing: React.FC = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => navigate('/home')}
+                onClick={() => {
+                  sessionStorage.setItem('from_landing', 'true');
+                  navigate('/home');
+                }}
                 startIcon={<PlayArrow />}
                 sx={{
                   background: 'linear-gradient(45deg, #8b5cf6 30%, #ec4899 90%)',

@@ -110,6 +110,7 @@ const Home: React.FC = () => {
       {/* Hero Section */}
       <Fade in={mounted} timeout={1000}>
         <Paper 
+          id="tutorial-home-dashboard"
           sx={{ 
             mb: 4,
             p: { xs: 3, md: 4 },
@@ -174,7 +175,7 @@ const Home: React.FC = () => {
       </Fade>
 
       {/* 快速操作区域 */}
-      <Box sx={{ mb: 4 }}>
+      <Box id="tutorial-home-actions" sx={{ mb: 4 }}>
         <Typography variant={isMobile ? "h5" : "h4"} sx={{ mb: 3, fontWeight: 600, color: 'text.primary' }}>
           快速开始
         </Typography>

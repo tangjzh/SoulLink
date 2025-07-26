@@ -143,6 +143,7 @@ const PersonaList: React.FC = () => {
           </Typography>
         </Box>
         <Button
+          id="tutorial-personas-create"
           variant="contained"
           startIcon={<Add />}
           onClick={() => navigate('/personas/create')}
@@ -165,7 +166,7 @@ const PersonaList: React.FC = () => {
       )}
 
       {personas.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: isMobile ? 4 : 8, px: isMobile ? 2 : 0 }}>
+        <Box id="tutorial-personas-list" sx={{ textAlign: 'center', py: isMobile ? 4 : 8, px: isMobile ? 2 : 0 }}>
           <Psychology sx={{ 
             fontSize: isMobile ? 60 : 80, 
             color: 'text.secondary', 
@@ -186,6 +187,7 @@ const PersonaList: React.FC = () => {
             创建你的第一个数字人格，开始探索AI驱动的个性化对话体验
           </Typography>
           <Button
+            id="tutorial-personas-actions"
             variant="contained"
             startIcon={<Add />}
             onClick={() => navigate('/personas/create')}
@@ -201,7 +203,7 @@ const PersonaList: React.FC = () => {
           </Button>
         </Box>
       ) : (
-        <Grid container spacing={isMobile ? 2 : 3}>
+        <Grid id="tutorial-personas-list" container spacing={isMobile ? 2 : 3}>
           {personas.map((persona) => (
             <Grid item xs={12} sm={6} lg={4} key={persona.id}>
               <Card
@@ -340,7 +342,7 @@ const PersonaList: React.FC = () => {
                   </Typography>
                 </CardContent>
 
-                <CardActions sx={{ 
+                <CardActions id="tutorial-personas-actions" sx={{ 
                   p: isMobile ? 1.5 : 2, 
                   pt: 0,
                   flexDirection: isMobile ? 'column' : 'row',
