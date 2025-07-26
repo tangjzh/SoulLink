@@ -646,10 +646,10 @@ const MatchMarket: React.FC = () => {
                 </CardContent>
                 
                 <CardActions sx={{ 
-                  display: 'flex', 
-                  gap: isMobile ? 0.5 : 1,
-                  flexDirection: isMobile ? 'column' : 'row',
-                  p: isMobile ? 2 : 1
+                  // display: 'flex', 
+                  // gap: isMobile ? 0.5 : 1,
+                  // flexDirection: isMobile ? 'column' : 'row',
+                  // p: isMobile ? 2 : 1
                 }}>
                   <Button
                     variant="outlined"
@@ -658,7 +658,7 @@ const MatchMarket: React.FC = () => {
                     size={isMobile ? "medium" : "small"}
                     fullWidth={isMobile}
                     sx={{ 
-                      flex: isMobile ? 'none' : 1,
+                      // flex: isMobile ? 'none' : 1,
                       // borderRadius: 0,
                       fontSize: isMobile ? '0.875rem' : '0.75rem'
                     }}
@@ -675,7 +675,7 @@ const MatchMarket: React.FC = () => {
                       size={isMobile ? "medium" : "small"}
                       fullWidth={isMobile}
                       sx={{ 
-                        flex: isMobile ? 'none' : 1,
+                        // flex: isMobile ? 'none' : 1,
                         // borderRadius: 0,
                         fontSize: isMobile ? '0.875rem' : '0.75rem'
                       }}
