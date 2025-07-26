@@ -5,7 +5,7 @@ export const tutorialSteps: TutorialStep[] = [
   {
     id: 'home-welcome',
     title: '欢迎来到SoulLink！',
-    content: '本页是您的个人仪表板，您从此处快速开始探索链接空间，寻找灵魂伴侣。',
+    content: '本页是您的个人仪表板，您从此处快速开始探索SoulLink，寻找灵魂伴侣。',
     target: '#tutorial-home-dashboard',
     position: 'bottom',
     page: '/home'

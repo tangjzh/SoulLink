@@ -696,6 +696,7 @@ async def create_market_conversation(
                 "category": scenario.category,
                 "difficulty_level": scenario.difficulty_level
             },
+            digital_persona_id=str(target_persona.id),
             created_at=conversation.created_at
         )
         

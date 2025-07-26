@@ -277,6 +277,11 @@ const MatchMarket: React.FC = () => {
         display_description: '',
         tags: []
       });
+      
+      // 重新检查投放状态以激活其他tab
+      await checkAgentStatus();
+      
+      // 刷新数据
       loadData();
     } catch (err: any) {
       setError(err.response?.data?.detail || '投放失败');
@@ -461,6 +466,8 @@ const MatchMarket: React.FC = () => {
   const sortedMatchRelations = [...matchRelations].sort((a, b) => {
     return getCompatibilityScore(b) - getCompatibilityScore(a);
   });
+
+  // console.log(matchRelations);
 
   return (
     <Box>
@@ -1552,7 +1559,7 @@ const MatchMarket: React.FC = () => {
                           textAlign: isMobile ? 'center' : 'left'
                         }}
                       >
-                        {agent.display_description}
+                        {agent.display_description || '暂无描述'}
                       </Typography>
                     </Box>
 
@@ -1679,7 +1686,8 @@ const MatchMarket: React.FC = () => {
                         匹配统计
                       </Typography>
                       <Box sx={{ 
-                        display: 'grid',
+                        display: 'flex',
+                        justifyContent: 'center',
                         gridTemplateColumns: isMobile ? '1fr' : { xs: '1fr 1fr', sm: '1fr 1fr 1fr' },
                         gap: isMobile ? 1.5 : 2,
                         p: isMobile ? 1.5 : 2,
