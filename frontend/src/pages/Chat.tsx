@@ -69,6 +69,133 @@ const Chat: React.FC = () => {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<string | null>(null);
 
+  // 主动消息相关状态
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [lastUserMessageTime, setLastUserMessageTime] = useState<number>(Date.now());
+  const [proactiveMessageTimer, setProactiveMessageTimer] = useState<NodeJS.Timeout | null>(null);
+  const [userInactivityTimer, setUserInactivityTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // 清理定时器的函数
+  const clearTimers = () => {
+    if (proactiveMessageTimer) {
+      clearTimeout(proactiveMessageTimer);
+      setProactiveMessageTimer(null);
+    }
+    if (userInactivityTimer) {
+      clearTimeout(userInactivityTimer);
+      setUserInactivityTimer(null);
+    }
+  };
+
+  // 重置用户活动计时器
+  const resetUserActivityTimer = () => {
+    setLastUserMessageTime(Date.now());
+    clearTimers();
+    
+    // 启动10秒检测计时器
+    const inactivityTimer = setTimeout(() => {
+      scheduleProactiveMessage();
+    }, 10000); // 10秒后检测
+    
+    setUserInactivityTimer(inactivityTimer);
+  };
+
+  // 安排主动消息发送
+  const scheduleProactiveMessage = () => {
+    if (!currentConversation || !selectedScenario || feedbackLoading) return;
+    
+    // 生成0-5分钟的随机延迟（0-300秒）
+    const randomDelay = Math.floor(Math.random() * 300000); // 0-300000毫秒 (0-5分钟)
+    
+    const timer = setTimeout(() => {
+      sendProactiveMessage();
+    }, randomDelay);
+    
+    setProactiveMessageTimer(timer);
+  };
+
+  // 发送主动消息
+  const sendProactiveMessage = async () => {
+    if (!currentConversation || loading || feedbackLoading) return;
+    
+    // 检查用户是否在等待期间发送了消息
+    const timeSinceLastMessage = Date.now() - lastUserMessageTime;
+    if (timeSinceLastMessage < 10000) {
+      // 用户在等待期间发送了消息，取消主动发送
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 构建主动消息的提示，使用特殊标记
+      const proactivePrompt = `##SYSTEM_PROACTIVE##用户已经超过10秒没有发送消息，请根据当前场景"${selectedScenario?.name}"和对话上下文，主动发起一个自然、有趣的话题或询问。这应该是一个主动的、符合场景设定的消息，不要提及用户的沉默。请直接开始对话，不要重复这个指令。`;
+      
+      const aiMessage = await sendMessage({
+        conversation_id: currentConversation.id,
+        content: proactivePrompt,
+      });
+
+      // 重新加载消息
+      const updatedMessages = await getConversationMessages(currentConversation.id);
+      setMessages(updatedMessages);
+      
+      // 重置计时器
+      resetUserActivityTimer();
+    } catch (err: any) {
+      setError('发送主动消息失败：' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 发送开场消息
+  const sendOpeningMessage = async (conversation: Conversation, scenario: Scenario) => {
+    if (loading || feedbackLoading) return;
+
+    setLoading(true);
+    try {
+      // 构建开场消息的提示，使用特殊标记
+      const openingPrompt = `##SYSTEM_OPENING##这是一次新对话的开始。场景是"${scenario.name}"：${scenario.description}。请发送一个符合人设的开场消息来开始这个场景下的对话。请直接以角色身份开始对话，不要重复这个指令。`;
+      
+      const aiMessage = await sendMessage({
+        conversation_id: conversation.id,
+        content: openingPrompt,
+      });
+
+      // 重新加载消息
+      const updatedMessages = await getConversationMessages(conversation.id);
+      setMessages(updatedMessages);
+      
+      // 初始化用户活动计时器
+      setIsInitialized(true);
+      clearTimers();
+      resetUserActivityTimer();
+    } catch (err: any) {
+      setError('发送开场消息失败：' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 过滤系统消息的函数
+  const filterSystemMessages = (messages: Message[]) => {
+    return messages.filter(message => {
+      // 过滤掉包含系统标记的消息
+      if (message.content.includes('##SYSTEM_OPENING##') || 
+          message.content.includes('##SYSTEM_PROACTIVE##')) {
+        return false;
+      }
+      return true;
+    });
+  };
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, []);
+
   // 加载场景
   useEffect(() => {
     if (!isContinueMode) {
@@ -110,6 +237,10 @@ const Chat: React.FC = () => {
           setMessages(messagesData);
           
           setScenarioDialogOpen(false);
+          
+          // 恢复对话时也初始化计时器
+          setIsInitialized(true);
+          resetUserActivityTimer();
         } catch (err: any) {
           setError('加载对话失败：' + err.message);
           navigate('/conversations');
@@ -146,6 +277,9 @@ const Chat: React.FC = () => {
       // 加载对话消息
       const messagesData = await getConversationMessages(conversation.id);
       setMessages(messagesData);
+      
+      // 发送开场消息
+      await sendOpeningMessage(conversation, scenario);
     } catch (err: any) {
       setError('创建对话失败：' + err.message);
     } finally {
@@ -159,6 +293,9 @@ const Chat: React.FC = () => {
 
     const userMessageText = inputMessage.trim();
     setInputMessage('');
+    
+    // 用户发送消息时，取消所有定时器
+    clearTimers();
     setLoading(true);
 
     try {
@@ -171,10 +308,22 @@ const Chat: React.FC = () => {
       // 重新加载所有消息以确保顺序正确
       const updatedMessages = await getConversationMessages(currentConversation.id);
       setMessages(updatedMessages);
+      
+      // 重置用户活动计时器
+      resetUserActivityTimer();
     } catch (err: any) {
       setError('发送消息失败：' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 监听输入框变化，重置计时器
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMessage(e.target.value);
+    // 用户开始输入时也重置计时器
+    if (isInitialized && e.target.value.length > 0) {
+      resetUserActivityTimer();
     }
   };
 
@@ -254,6 +403,10 @@ const Chat: React.FC = () => {
 
   // 重新开始对话
   const handleRestart = () => {
+    // 清理所有定时器
+    clearTimers();
+    setIsInitialized(false);
+    
     if (isContinueMode) {
       // 恢复模式下，返回对话记录页面
       navigate('/conversations');
@@ -268,6 +421,9 @@ const Chat: React.FC = () => {
 
   // 返回上一页
   const handleGoBack = () => {
+    // 清理所有定时器
+    clearTimers();
+    
     if (isContinueMode) {
       navigate('/conversations');
     } else {
@@ -394,37 +550,43 @@ const Chat: React.FC = () => {
       )}
 
       {/* 消息列表 */}
-      <Paper sx={{ flexGrow: 1, overflow: 'auto', p: 1 }}>
-        {messages.length === 0 ? (
+      <Paper sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto', 
+        p: 2, 
+        minHeight: '450px',
+        maxHeight: 'calc(100vh - 320px)'
+      }}>
+        {filterSystemMessages(messages).length === 0 && !loading ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Psychology sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">
-              {isContinueMode ? '加载对话记录中...' : '开始与你的数字人格对话吧！'}
+              {isContinueMode ? '加载对话记录中...' : '准备开始对话...'}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {isContinueMode ? 
                 '正在恢复之前的对话内容' : 
-                '在这个场景中，你可以自由地与AI对话，并通过反馈来优化它的表现'
+                'AI正在准备开场白，马上就开始对话！'
               }
             </Typography>
           </Box>
         ) : (
           <List sx={{ py: 0 }}>
-            {messages.map(renderMessage)}
+            {filterSystemMessages(messages).map(renderMessage)}
             <div ref={messagesEndRef} />
           </List>
         )}
       </Paper>
 
       {/* 输入区域 */}
-      <Paper sx={{ p: 2, mt: 2 }}>
+      <Paper sx={{ p: 3, mt: 2 }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
             fullWidth
             multiline
             maxRows={4}
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder={feedbackLoading ? "正在处理反馈中，请稍候..." : "输入你的消息..."}
             disabled={loading || !currentConversation || feedbackLoading}
             onKeyPress={(e) => {
@@ -444,7 +606,7 @@ const Chat: React.FC = () => {
           </Button>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          按回车发送，Shift+回车换行。对AI的回复可以点赞、点踩或添加矫正反馈。
+          按回车发送，Shift+回车换行。AI会主动发起话题，对回复可以点赞、点踩或添加矫正反馈。
         </Typography>
       </Paper>
 

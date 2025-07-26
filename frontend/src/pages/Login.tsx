@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -22,7 +22,7 @@ import {
   Login as LoginIcon,
   Psychology
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TabPanelProps {
@@ -49,9 +49,12 @@ function TabPanel(props: TabPanelProps) {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { login, register, loading } = useAuth();
   
-  const [tabValue, setTabValue] = useState(0);
+  // 从URL参数中获取默认tab
+  const defaultTab = searchParams.get('tab') ? parseInt(searchParams.get('tab')!) : 0;
+  const [tabValue, setTabValue] = useState(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -69,7 +72,7 @@ const Login: React.FC = () => {
     confirmPassword: ''
   });
 
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || '/home';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -45,7 +45,7 @@ const Navbar: React.FC = () => {
   const handleLogout = () => {
     logout();
     handleUserMenuClose();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -58,7 +58,7 @@ const Navbar: React.FC = () => {
           edge="start"
           color="inherit"
           aria-label="logo"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           sx={{ mr: { xs: 1, sm: 2 }, borderRadius: 0 }}
         >
           <Psychology fontSize={isMobile ? "medium" : "large"} />
@@ -89,7 +89,7 @@ const Navbar: React.FC = () => {
                 <IconButton
                   color="inherit"
                   component={Link}
-                  to="/"
+                  to="/home"
                   sx={{ 
                     borderRadius: 0,
                     '&:hover': {
@@ -152,65 +152,65 @@ const Navbar: React.FC = () => {
           ) : (
             // 桌面端显示文字按钮
             <>
-          <Button
-            color="inherit"
-            startIcon={<HomeIcon />}
-            component={Link}
-            to="/"
-            sx={{ 
+              <Button
+                color="inherit"
+                startIcon={<HomeIcon />}
+                component={Link}
+                to="/home"
+                sx={{ 
                   borderRadius: 0,
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            首页
-          </Button>
-          
-          <Button
-            color="inherit"
-            startIcon={<Person />}
-            component={Link}
-            to="/personas"
-            sx={{ 
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                首页
+              </Button>
+              
+              <Button
+                color="inherit"
+                startIcon={<Person />}
+                component={Link}
+                to="/personas"
+                sx={{ 
                   borderRadius: 0,
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            数字人格
-          </Button>
-          
-          <Button
-            color="inherit"
-            startIcon={<History />}
-            component={Link}
-            to="/conversations"
-            sx={{ 
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                数字人格
+              </Button>
+              
+              <Button
+                color="inherit"
+                startIcon={<History />}
+                component={Link}
+                to="/conversations"
+                sx={{ 
                   borderRadius: 0,
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            对话记录
-          </Button>
-          
-          <Button
-            color="inherit"
-            startIcon={<Favorite />}
-            component={Link}
-            to="/match-market"
-            sx={{ 
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                对话记录
+              </Button>
+              
+              <Button
+                color="inherit"
+                startIcon={<Favorite />}
+                component={Link}
+                to="/match-market"
+                sx={{ 
                   borderRadius: 0,
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            链接时空
-          </Button>
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                链接时空
+              </Button>
             </>
           )}
         </Box>

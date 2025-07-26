@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Container } from '@mui/material';
 import Navbar from './components/Navbar';
+import Landing from './pages/Landing';
 import Home from './pages/Home';
 import PersonaCreate from './pages/PersonaCreate';
 import PersonalityAssessment from './pages/PersonalityAssessment';
@@ -20,66 +21,122 @@ function App() {
     <AuthProvider>
       <div className="App">
         <Routes>
-          {/* 公开路由 */}
+          {/* 根路径：始终显示Landing页面 */}
+          <Route path="/" element={<Landing />} />
+          
+          {/* 登录页面 */}
           <Route path="/login" element={<Login />} />
           
-          {/* 受保护的路由 */}
+          {/* 用户主页 */}
           <Route
-            path="/*"
+            path="/home"
             element={
               <ProtectedRoute>
                 <Navbar />
-                  <Routes>
-                  {/* 首页使用全屏布局 */}
-                    <Route path="/" element={<Home />} />
-                  
-                  {/* 其他页面使用Container布局 */}
-                  <Route path="/personas" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <PersonaList />
-                    </Container>
-                  } />
-                  <Route path="/personas/create" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <PersonaCreate />
-                    </Container>
-                  } />
-                  <Route path="/personality-assessment/:personaId" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <PersonalityAssessment />
-                    </Container>
-                  } />
-                  <Route path="/chat/:personaId" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <Chat />
-                    </Container>
-                  } />
-                  <Route path="/chat/:conversationId/continue" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <Chat />
-                    </Container>
-                  } />
-                  <Route path="/market-chat/:agentPersonaId" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <MarketChat />
-                    </Container>
-                  } />
-                  <Route path="/realtime-chat/:matchId" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <RealTimeChat />
-                    </Container>
-                  } />
-                  <Route path="/conversations" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <ConversationHistory />
-                    </Container>
-                  } />
-                  <Route path="/match-market" element={
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                      <MatchMarket />
-                    </Container>
-                  } />
-                  </Routes>
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <Home />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* 受保护的功能页面 */}
+          <Route
+            path="/personas"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <PersonaList />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/personas/create"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <PersonaCreate />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/personality-assessment/:personaId"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <PersonalityAssessment />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:personaId"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <Chat />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:conversationId/continue"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <Chat />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/market-chat/:agentPersonaId"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <MarketChat />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/realtime-chat/:matchId"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <RealTimeChat />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conversations"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <ConversationHistory />
+                </Container>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/match-market"
+            element={
+              <ProtectedRoute>
+                <Navbar />
+                <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                  <MatchMarket />
+                </Container>
               </ProtectedRoute>
             }
           />

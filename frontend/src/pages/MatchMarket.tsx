@@ -875,10 +875,10 @@ const MatchMarket: React.FC = () => {
                   </CardContent>
                   
                   <CardActions sx={{ 
-                    display: 'flex',
-                    flexDirection: 'column', 
-                    gap: isMobile ? 0.5 : 1,
-                    p: isMobile ? 2 : 1
+                    // display: 'flex',
+                    // flexDirection: 'column', 
+                    // gap: isMobile ? 0.5 : 1,
+                    // p: isMobile ? 2 : 1
                   }}>
                     {/* 第一行：自动对话和查看对话 */}
                     <Box sx={{ 
@@ -1043,7 +1043,7 @@ const MatchMarket: React.FC = () => {
 
         {loading && <LinearProgress sx={{ mb: isMobile ? 2 : 3 }} />}
 
-        {myMarketAgents.length > 0 ? (
+        {myMarketAgents.filter(agent => agent.market_type === marketType).length > 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Card sx={{ 
               maxWidth: isMobile ? '100%' : 600, 
@@ -1057,7 +1057,7 @@ const MatchMarket: React.FC = () => {
               }
             }}>
               <CardContent sx={{ p: isMobile ? 3 : 4 }}>
-                {myMarketAgents.map((agent) => (
+                {myMarketAgents.filter(agent => agent.market_type === marketType).map((agent) => (
                   <Box key={agent.id}>
                     {/* 头部信息 */}
                     <Box sx={{ 
@@ -1100,7 +1100,7 @@ const MatchMarket: React.FC = () => {
                             variant="filled"
                             icon={agent.market_type === 'love' ? <Favorite /> : <People />}
                             sx={{ 
-                              borderRadius: 0,
+                              // borderRadius: 0,
                               fontSize: isMobile ? '0.875rem' : '1rem'
                             }}
                           />
@@ -1110,7 +1110,7 @@ const MatchMarket: React.FC = () => {
                             variant="outlined"
                             size={isMobile ? "medium" : "small"}
                             sx={{ 
-                              borderRadius: 0,
+                              // borderRadius: 0,
                               fontSize: isMobile ? '0.875rem' : '0.75rem'
                             }}
                           />
@@ -1143,7 +1143,7 @@ const MatchMarket: React.FC = () => {
                           lineHeight: 1.6,
                           p: isMobile ? 1.5 : 2,
                           bgcolor: 'grey.50',
-                          borderRadius: 0,
+                          // borderRadius: 0,
                           border: '1px solid',
                           borderColor: 'grey.200',
                           fontSize: isMobile ? '0.875rem' : '1rem',
@@ -1177,7 +1177,7 @@ const MatchMarket: React.FC = () => {
                           gap: isMobile ? 0.75 : 1,
                           p: isMobile ? 1.5 : 2,
                           bgcolor: 'grey.50',
-                          borderRadius: 0,
+                          // borderRadius: 0,
                           border: '1px solid',
                           borderColor: 'grey.200',
                           justifyContent: isMobile ? 'center' : 'flex-start'
@@ -1221,7 +1221,7 @@ const MatchMarket: React.FC = () => {
                         gap: isMobile ? 1 : 2,
                         p: isMobile ? 1.5 : 2,
                         bgcolor: 'grey.50',
-                        borderRadius: 0,
+                        // borderRadius: 0,
                         border: '1px solid',
                         borderColor: 'grey.200'
                       }}>
@@ -1282,7 +1282,7 @@ const MatchMarket: React.FC = () => {
                         gap: isMobile ? 1.5 : 2,
                         p: isMobile ? 1.5 : 2,
                         bgcolor: 'grey.50',
-                        borderRadius: 0,
+                        // borderRadius: 0,
                         border: '1px solid',
                         borderColor: 'grey.200'
                       }}>
@@ -1359,7 +1359,7 @@ const MatchMarket: React.FC = () => {
                         size={isMobile ? "large" : "large"}
                         fullWidth={isMobile}
                         sx={{ 
-                          borderRadius: 0,
+                          // borderRadius: 0,
                           fontSize: isMobile ? '1rem' : '1rem'
                         }}
                       >
@@ -1374,7 +1374,7 @@ const MatchMarket: React.FC = () => {
                         size={isMobile ? "large" : "large"}
                         fullWidth={isMobile}
                         sx={{ 
-                          borderRadius: 0,
+                          // borderRadius: 0,
                           fontSize: isMobile ? '1rem' : '1rem'
                         }}
                       >
@@ -1420,7 +1420,7 @@ const MatchMarket: React.FC = () => {
                 onClick={() => setCreateDialogOpen(true)}
                 disabled={loading}
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '1rem' : '1rem',
                   px: isMobile ? 4 : 3,
                   py: isMobile ? 1.5 : 1
@@ -1464,7 +1464,7 @@ const MatchMarket: React.FC = () => {
                 label="选择数字人格"
                 onChange={(e) => setCreateForm(prev => ({ ...prev, digital_persona_id: e.target.value }))}
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '0.875rem' : '1rem'
                 }}
               >
@@ -1493,7 +1493,7 @@ const MatchMarket: React.FC = () => {
                 label="市场类型"
                 onChange={(e) => setCreateForm(prev => ({ ...prev, market_type: e.target.value as 'love' | 'friendship' }))}
                 sx={{ 
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '0.875rem' : '1rem'
                 }}
               >
@@ -1520,7 +1520,7 @@ const MatchMarket: React.FC = () => {
               sx={{ 
                 mb: isMobile ? 2 : 2,
                 '& .MuiInputBase-root': {
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '0.875rem' : '1rem'
                 },
                 '& .MuiInputLabel-root': {
@@ -1540,7 +1540,7 @@ const MatchMarket: React.FC = () => {
               sx={{ 
                 mb: isMobile ? 2 : 2,
                 '& .MuiInputBase-root': {
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '0.875rem' : '1rem'
                 },
                 '& .MuiInputLabel-root': {
@@ -1561,7 +1561,7 @@ const MatchMarket: React.FC = () => {
               helperText="例如: 浪漫, 幽默, 喜欢音乐"
               sx={{ 
                 '& .MuiInputBase-root': {
-                  borderRadius: 0,
+                  // borderRadius: 0,
                   fontSize: isMobile ? '0.875rem' : '1rem'
                 },
                 '& .MuiInputLabel-root': {
@@ -1585,7 +1585,7 @@ const MatchMarket: React.FC = () => {
             fullWidth={isMobile}
             size={isMobile ? "large" : "medium"}
             sx={{ 
-              borderRadius: 0,
+              // borderRadius: 0,
               fontSize: isMobile ? '1rem' : '0.875rem'
             }}
           >
@@ -1718,7 +1718,7 @@ const MatchMarket: React.FC = () => {
                           sx={{ 
                             mr: isMobile ? 0 : 1, 
                             mb: isMobile ? 0 : 1,
-                            borderRadius: 0,
+                            // borderRadius: 0,
                             fontSize: isMobile ? '0.7rem' : '0.75rem'
                           }}
                         />
@@ -1727,7 +1727,7 @@ const MatchMarket: React.FC = () => {
                           color={conv.friendship_score_change >= 0 ? 'success' : 'error'}
                           size="small"
                           sx={{ 
-                            borderRadius: 0,
+                            // borderRadius: 0,
                             fontSize: isMobile ? '0.7rem' : '0.75rem'
                           }}
                         />
@@ -1753,7 +1753,7 @@ const MatchMarket: React.FC = () => {
                       overflowY: 'auto', 
                       border: '1px solid', 
                       borderColor: 'divider', 
-                      borderRadius: 0, 
+                      // borderRadius: 0, 
                       p: isMobile ? 1.5 : 2 
                     }}>
                       {conv.messages.map((msg: any, msgIndex: number) => (

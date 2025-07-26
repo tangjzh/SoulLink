@@ -156,18 +156,27 @@ class MatchService:
                 else:
                     sender_persona = persona2
                 
-                # 添加历史对话
-                for msg in conversation_context[-6:-1]:  # 只保留最近6条消息
-                    context_messages.append({
-                        "sender_type": "user" if msg["sender"] == current_sender.display_name else "assistant",
-                        "content": msg["content"]
-                    })
+                # 添加历史对话（仅当有历史记录时）
+                if conversation_context:
+                    # 只保留最近6条消息，但不包括最后一条（避免重复）
+                    for msg in conversation_context[-6:]:
+                        context_messages.append({
+                            "sender_type": "user" if msg["sender"] == current_sender.display_name else "assistant",
+                            "content": msg["content"]
+                        })
+                
+                # 准备用户消息（第一轮对话时使用场景描述作为开场）
+                if conversation_context:
+                    user_message = conversation_context[-1]["content"]
+                else:
+                    # 第一轮对话时，使用场景描述作为开场提示
+                    user_message = f"请根据场景'{scenario.name}'开始一段自然的对话。"
                 
                 response, metadata = await self.ai_service.generate_agent_response(
                     system_prompt=sender_persona.system_prompt,
                     conversation_history=context_messages,
                     scenario_context=scenario.context,
-                    user_message=conversation_context[-1]["content"],
+                    user_message=user_message,
                     # user_id=current_sender.user_id
                 )
                 
